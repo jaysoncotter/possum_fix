@@ -281,7 +281,7 @@ const AIRPORTS = {
   KMSY:[29.9934,-90.2580,'New Orleans'],KIAH:[29.9902,-95.3368,'Houston Bush'],
   KATL:[33.6407,-84.4277,'Atlanta'],KTYS:[35.8110,-83.9940,'Knoxville'],
   KBNA:[36.1245,-86.6782,'Nashville'],KLIT:[34.7294,-92.2243,'Little Rock'],
-  PHOG:[20.8986,-156.4305,'Maui Kahului'],KDPX:[33.4500,-112.0600,'Phoenix Deer Valley'],
+  PHOG:[20.8986,-156.4305,'Maui Kahului'],PHTO:[19.7214,-155.0480,'Hilo'],PHNL:[21.3187,-157.9225,'Honolulu'],PHKO:[19.7388,-156.0456,'Kona'],KDPX:[33.4500,-112.0600,'Phoenix Deer Valley'],
   KTUS:[32.1161,-110.9410,'Tucson'],PANC:[61.1743,-149.9963,'Anchorage'],
   KPHX:[33.4373,-112.0078,'Phoenix Sky Harbor'],KSFO:[37.6213,-122.379,'San Francisco'],
   KSEA:[47.4502,-122.3088,'Seattle'],KJFK:[40.6398,-73.7789,'JFK'],
@@ -301,7 +301,8 @@ const AIRPORTS = {
 const FAVS=['KABQ', 'KATL', 'KAUS', 'KBNA', 'KBOS', 'KCLT', 'KDEN', 'KDFW', 'KDPX', 'KIAH', 'KJFK', 'KLAS', 'KLAX', 'KLIT', 'KMEM', 'KMIA', 'KMSY', 'KOKC', 'KORD', 'KPHX', 'KSAT', 'KSEA', 'KSFO', 'KSLC', 'KTUS', 'KTYS', 'PANC', 'PHOG'];
 
 // ── State ─────────────────────────────────────────────────────────────────
-let FIXES = {};   // ident -> [lat, lon]
+let FIXES = {};
+let AIRPORTS_DB = {};   // ident -> [lat, lon]
 let PROCS = {};   // ident -> [[procName, procType], ...]
 let currentICAO = 'KDFW', currentLat = 32.8998, currentLon = -97.0403;
 let searchMode = 'both', lastResults = [], sortCol = 'score', sortAsc = false;
@@ -338,11 +339,10 @@ function selectAirport(icao){
     setStatus(`${icao} — ${AIRPORTS[icao][2]}`, 'var(--green)');
     updateAirportPin(); map.setView([currentLat,currentLon],9);
   } else {
-    // Try to find airport coords from loaded CIFP data
-    // Airport identifiers appear as fix IDs in the database
-    // Strip leading K/P for domestic lookup too
-    const stripped = icao.length === 4 ? icao.substring(1) : icao;
-    const pos = FIXES[icao] || FIXES[stripped];
+    // Check parsed airport records first, then fix database
+    // Only strip leading K for domestic ICAO (KDFW->DFW), never P/C/T etc.
+    const stripped = (icao.length === 4 && icao[0] === 'K') ? icao.substring(1) : icao;
+    const pos = AIRPORTS_DB[icao] || AIRPORTS_DB[stripped] || FIXES[icao] || FIXES[stripped];
     if(pos){
       currentICAO=icao; currentLat=pos[0]; currentLon=pos[1];
       setStatus(`${icao} — found in database`, 'var(--green)');
@@ -372,6 +372,7 @@ async function tryAutoLoad(){
     if(!data.fixes || !data.procs) throw new Error('invalid format');
     FIXES = data.fixes;
     PROCS = data.procs;
+    AIRPORTS_DB = data.airports || {};
     const nf = Object.keys(FIXES).length;
     const np = Object.keys(PROCS).length;
     const stats = `${nf.toLocaleString()} fixes · ${np.toLocaleString()} with procedures`;
@@ -426,6 +427,7 @@ document.getElementById('cifpFile').addEventListener('change', async e=>{
     const result = await parseCIFP(lines);
     FIXES = result.fixes;
     PROCS = result.procs;
+    AIRPORTS_DB = result.airports || {};
 
     const nf = Object.keys(FIXES).length;
     const np = Object.keys(PROCS).length;
@@ -456,7 +458,7 @@ function readFileText(file, onProgress){
 
 // ── CIFP parser — matches possum.py column positions exactly ──────────────
 async function parseCIFP(lines){
-  const fixes = {}, procs = {};
+  const fixes = {}, procs = {}, airports = {};
   const seenFix = new Set();
   const total = lines.length;
   let last = 0;
@@ -488,6 +490,15 @@ async function parseCIFP(lines){
       }
     }
 
+    // Airport records: SUSAP with A at col 12
+    if(line.startsWith('SUSAP') && line.length>=52 && line[12]==='A'){
+      const icao = line.substring(6,10).trim();
+      if(icao && icao.length>=3){
+        const ll = parseCIFPLatLon(line.substring(32,51));
+        if(ll){ const [la,lo]=ll; if(la!==0||lo!==0) airports[icao]=[la,lo]; }
+      }
+    }
+
     // Procedure records: SUSAP with D/E/F at col 12
     if(line.startsWith('SUSAP ') || line.startsWith('SPACP ')){
       if(line.length < 34) continue;
@@ -512,8 +523,8 @@ async function parseCIFP(lines){
     }
   }
 
-  console.log(`[possum] fixes=${Object.keys(fixes).length} procs=${Object.keys(procs).length}`);
-  return {fixes, procs};
+  console.log(`[possum] fixes=${Object.keys(fixes).length} airports=${Object.keys(airports).length} procs=${Object.keys(procs).length}`);
+  return {fixes, procs, airports};
 }
 
 
