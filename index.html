@@ -338,8 +338,22 @@ function selectAirport(icao){
     setStatus(`${icao} — ${AIRPORTS[icao][2]}`, 'var(--green)');
     updateAirportPin(); map.setView([currentLat,currentLon],9);
   } else {
-    setStatus(`${icao} — not in known list, enter coords manually`, 'var(--yellow)');
-    currentICAO=icao;
+    // Try to find airport coords from loaded CIFP data
+    // Airport identifiers appear as fix IDs in the database
+    // Strip leading K/P for domestic lookup too
+    const stripped = icao.length === 4 ? icao.substring(1) : icao;
+    const pos = FIXES[icao] || FIXES[stripped];
+    if(pos){
+      currentICAO=icao; currentLat=pos[0]; currentLon=pos[1];
+      setStatus(`${icao} — found in database`, 'var(--green)');
+      updateAirportPin(); map.setView([currentLat,currentLon],9);
+    } else {
+      // Last resort — geocode from ICAO pattern
+      setStatus(`${icao} — type ICAO and press Enter to search anyway`, 'var(--yellow)');
+      currentICAO=icao;
+      // Still allow searching even without coords by using last known position
+      if(!currentLat) { currentLat=39.5; currentLon=-98.35; }
+    }
   }
 }
 document.getElementById('icaoInput').addEventListener('keydown',e=>{if(e.key==='Enter')selectAirport(e.target.value);});
