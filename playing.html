@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Playing Possum</title>
+<style>
+  :root {
+    --bg:      #0a0c0f;
+    --surface: #111318;
+    --border:  #1e2128;
+    --border2: #2a2f3a;
+    --text:    #d4d8e0;
+    --muted:   #5a6070;
+    --accent:  #e85d26;
+    --accent2: #f07940;
+    --blue:    #4a90d9;
+    --green:   #3db87a;
+    --yellow:  #f0c040;
+    --red:     #e85555;
+    --purple:  #8b6fd4;
+    --mono:    'Courier New', monospace;
+    --sans:    'Trebuchet MS', 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; min-height: 100vh; }
+
+  #header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo-link { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); flex-shrink: 0; }
+  .logo-link .possum-word { font-size: 11px; font-family: var(--mono); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  .paw { font-size: 20px; }
+  .title-block { flex: 1; }
+  .page-title { font-size: 15px; font-weight: 600; color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase; }
+  #flight-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
+  #flight-meta span { color: var(--blue); }
+
+  #status-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 7px 16px; font-family: var(--mono); font-size: 11px; color: var(--muted);
+    display: flex; align-items: center; gap: 8px; min-height: 32px;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  #status-bar.loading .dot { background: var(--yellow); animation: pulse 1s ease-in-out infinite; }
+  #status-bar.ok      .dot { background: var(--green); }
+  #status-bar.error   .dot { background: var(--red); }
+  #status-bar.waiting .dot { background: var(--purple); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  #nav-strip {
+    display: none; background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 6px 16px; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+  }
+  #nav-strip.visible { display: flex; }
+  #nav-strip button {
+    background: var(--border2); border: 1px solid var(--border2); color: var(--text);
+    font-family: var(--mono); font-size: 11px; padding: 3px 10px; cursor: pointer; border-radius: 3px;
+  }
+  #nav-strip button:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #nav-strip button:disabled { opacity: 0.3; cursor: default; }
+  #nav-strip button:disabled:hover { background: var(--border2); border-color: var(--border2); color: var(--text); }
+  #flight-date-label { color: var(--blue); margin-left: 4px; }
+
+  #main { display: flex; height: calc(100vh - 90px); }
+  #route-panel { flex: 1; overflow-y: auto; padding: 0; }
+  #route-panel::-webkit-scrollbar { width: 6px; }
+  #route-panel::-webkit-scrollbar-track { background: var(--bg); }
+  #route-panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  #route-header {
+    padding: 10px 16px 8px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px;
+    background: var(--surface); position: sticky; top: 0; z-index: 10;
+  }
+  #route-string { font-family: var(--mono); font-size: 10px; color: var(--muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #route-string .rs-fix { color: var(--text); }
+  #options-row { display: flex; gap: 10px; flex-shrink: 0; }
+  .toggle-label { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); cursor: pointer; user-select: none; }
+  .toggle-label input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+
+  .fix-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 6px 16px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.1s; gap: 12px;
+  }
+  .fix-row:hover { background: rgba(255,255,255,0.03); }
+  .fix-row.copied { background: rgba(232,93,38,0.12); }
+  .fix-row.type-airport  { border-left: 2px solid var(--blue); }
+  .fix-row.type-navaid   { border-left: 2px solid var(--green); }
+  .fix-row.type-proc     { border-left: 2px solid var(--purple); }
+  .fix-row.type-fix      { border-left: 2px solid var(--border2); }
+  .fix-row.type-diverted { border-left: 2px solid var(--red); opacity: 0.7; }
+
+  .fix-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .fix-ident { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text); text-decoration: none; }
+  .fix-ident:hover { color: var(--accent2); }
+  .fix-ident.airport-ident { color: var(--blue); font-size: 13px; }
+  .fix-ident.navaid-ident  { color: var(--green); }
+  .fix-ident.proc-ident    { color: var(--purple); font-size: 11px; }
+  .fix-ident.diverted-ident{ color: var(--red); }
+  .fix-name  { font-size: 10px; color: var(--muted); }
+  .fix-track { font-family: var(--mono); font-size: 10px; color: #2a7a5a; margin-top: 1px; }
+  .fix-right { text-align: right; flex-shrink: 0; font-size: 10px; color: var(--muted); }
+
+  #no-extension {
+    display: none; flex-direction: column; align-items: center;
+    justify-content: center; padding: 48px 24px; text-align: center; gap: 16px;
+  }
+  #no-extension.visible { display: flex; }
+  .big-paw { font-size: 48px; opacity: 0.3; }
+  #no-extension h2 { font-size: 16px; font-weight: 600; color: var(--text); }
+  #no-extension p { font-size: 12px; color: var(--muted); max-width: 320px; line-height: 1.6; }
+  .ext-note {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 6px;
+    padding: 12px 16px; font-family: var(--mono); font-size: 11px; color: var(--muted);
+    max-width: 360px; text-align: left;
+  }
+  .ext-note strong { color: var(--accent); }
+  .empty-state { padding: 32px 16px; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.8; }
+  #disclaimer {
+    background: rgba(240,192,64,0.06); border-top: 1px solid rgba(240,192,64,0.15);
+    padding: 6px 16px; font-size: 10px; color: rgba(240,192,64,0.6);
+    font-family: var(--mono); text-align: center;
+  }
+  .retry-btn {
+    background: var(--accent); border: none; color: #fff; font-family: var(--mono);
+    font-size: 11px; padding: 6px 14px; cursor: pointer; border-radius: 3px; margin-top: 8px;
+  }
+  .retry-btn:hover { background: var(--accent2); }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <a class="logo-link" href="/" title="Back to Possum">
+    <span class="paw">🐾</span>
+    <span class="possum-word">Possum</span>
+  </a>
+  <div class="title-block">
+    <div class="page-title">Playing Possum</div>
+    <div id="flight-meta">—</div>
+  </div>
+</div>
+
+<div id="status-bar" class="waiting">
+  <div class="dot"></div>
+  <span id="status-text">Waiting for Playing Possum extension...</span>
+</div>
+
+<div id="nav-strip">
+  <button id="prev-btn" disabled>◀</button>
+  <span id="flight-counter"></span>
+  <span id="flight-date-label"></span>
+  <button id="next-btn" disabled>▶</button>
+  <span style="margin-left:auto;color:var(--muted)">Multiple legs — navigate with arrows</span>
+</div>
+
+<div id="main">
+  <div id="route-panel">
+    <div id="no-extension">
+      <div class="big-paw">🐾</div>
+      <h2>Playing Possum extension not detected</h2>
+      <p>This page requires the Playing Possum browser extension to fetch flight route data from FlightAware.</p>
+      <div class="ext-note">
+        <strong>To use this page:</strong><br><br>
+        Install the Playing Possum Chrome extension,<br>
+        then reload this page.<br><br>
+        The extension is a companion tool for<br>
+        <strong>possumfix.com</strong>
+      </div>
+    </div>
+    <div id="route-header" style="display:none">
+      <div id="route-string">—</div>
+      <div id="options-row">
+        <label class="toggle-label"><input type="checkbox" id="show-track" checked> Alt/Spd</label>
+        <label class="toggle-label"><input type="checkbox" id="show-loc" checked> Info</label>
+      </div>
+    </div>
+    <div id="fix-list"></div>
+  </div>
+</div>
+
+<div id="disclaimer" style="display:none">
+  ⚠ Route data from FlightAware — may not reflect actual flown path &nbsp;·&nbsp; Playing Possum is a temporary feature
+</div>
+
+<script>
+const params   = new URLSearchParams(window.location.search);
+const CALLSIGN = (params.get('callsign') || '').toUpperCase().trim();
+const DATE_STR = (params.get('date') || '').trim();
+
+let flightCandidates = [], currentIndex = 0, lastTokens = [], extReady = false, fetchTimeout = null;
+
+const statusBar  = document.getElementById('status-bar');
+const statusText = document.getElementById('status-text');
+const flightMeta = document.getElementById('flight-meta');
+const fixList    = document.getElementById('fix-list');
+const noExt      = document.getElementById('no-extension');
+const routeHdr   = document.getElementById('route-header');
+const routeStr   = document.getElementById('route-string');
+const navStrip   = document.getElementById('nav-strip');
+const fCounter   = document.getElementById('flight-counter');
+const fDateLbl   = document.getElementById('flight-date-label');
+const prevBtn    = document.getElementById('prev-btn');
+const nextBtn    = document.getElementById('next-btn');
+const showTrack  = document.getElementById('show-track');
+const showLoc    = document.getElementById('show-loc');
+const disclaimer = document.getElementById('disclaimer');
+
+if (!CALLSIGN) {
+  setStatus('error', 'No callsign provided in URL.');
+} else {
+  flightMeta.innerHTML = `<span>${CALLSIGN}</span>${DATE_STR ? ' &nbsp;&middot;&nbsp; ' + DATE_STR : ''}`;
+  waitForExtension();
+}
+
+function waitForExtension() {
+  setStatus('waiting', 'Waiting for Playing Possum extension...');
+  window.addEventListener('possum:ready', () => {
+    extReady = true;
+    clearTimeout(fetchTimeout);
+    setStatus('loading', 'Fetching flight history for ' + CALLSIGN + '...');
+    requestFetch();
+  }, { once: true });
+  fetchTimeout = setTimeout(() => {
+    if (!extReady) { noExt.classList.add('visible'); setStatus('error', 'Playing Possum extension not detected.'); }
+  }, 4000);
+}
+
+function requestFetch() {
+  window.dispatchEvent(new CustomEvent('possum:fetch', { detail: { callsign: CALLSIGN, date: DATE_STR } }));
+}
+
+window.addEventListener('possum:result', (e) => {
+  const { candidates, error } = e.detail;
+  if (error) { setStatus('error', error); fixList.innerHTML = '<div class="empty-state">' + error + '<br><button class="retry-btn" onclick="requestFetch()">Retry</button></div>'; return; }
+  if (!candidates || candidates.length === 0) {
+    setStatus('error', 'No flight history found for ' + CALLSIGN + (DATE_STR ? ' on ' + DATE_STR : '') + '.');
+    fixList.innerHTML = '<div class="empty-state">No flights found.<br><small style="color:var(--muted)">Try FA HIST manually.</small></div>';
+    return;
+  }
+  flightCandidates = candidates;
+  currentIndex = 0;
+  if (DATE_STR) {
+    const target = new Date(DATE_STR + 'T12:00:00Z').getTime();
+    let minDiff = Infinity;
+    candidates.forEach((c, i) => { const d = Math.abs(c.timestamp - target); if (d < minDiff) { minDiff = d; currentIndex = i; } });
+  } else {
+    currentIndex = candidates.length - 1;
+  }
+  if (candidates.length > 1) { navStrip.classList.add('visible'); updateNavStrip(); }
+  disclaimer.style.display = 'block';
+  loadCandidate(currentIndex);
+});
+
+function loadCandidate(idx) {
+  const c = flightCandidates[idx];
+  if (!c) return;
+  setStatus('loading', 'Loading route — ' + c.dateLabel + ' ' + c.timeLabel + '...');
+  flightMeta.innerHTML = '<span>' + CALLSIGN + '</span> &nbsp;&middot;&nbsp; ' + c.dateLabel + ' ' + c.timeLabel + ' &nbsp;&middot;&nbsp; ' + c.orig + '&rarr;' + c.dest;
+  window.dispatchEvent(new CustomEvent('possum:load', { detail: { candidate: c, callsign: CALLSIGN } }));
+}
+
+window.addEventListener('possum:tokens', (e) => {
+  const { tokens, routeStrText } = e.detail;
+  lastTokens = tokens;
+  routeHdr.style.display = 'flex';
+  if (routeStrText) {
+    routeStr.innerHTML = routeStrText.split(' ').map(t => '<span class="rs-fix">' + t + '</span>').join('<span style="color:var(--muted)"> &middot; </span>');
+  }
+  renderTokens(tokens);
+  setStatus('ok', tokens.length + ' fixes loaded — ' + (flightCandidates[currentIndex] ? flightCandidates[currentIndex].dateLabel : ''));
+  updateNavStrip();
+});
+
+function renderTokens(tokens) {
+  fixList.innerHTML = '';
+  const doTrack = showTrack.checked, doLoc = showLoc.checked;
+  tokens.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'fix-row';
+    row.setAttribute('data-copy', item.ident);
+    const isAirport  = item.type === 'airport';
+    const isNavaid   = !isAirport && item.ident.length === 3 && !/\d/.test(item.ident);
+    const isProc     = /\d/.test(item.ident) && (item.ident.length > 4 || item.ident.includes('.'));
+    const isDiverted = !!item.isDiverted;
+    row.classList.add(isDiverted ? 'type-diverted' : isAirport ? 'type-airport' : isNavaid ? 'type-navaid' : isProc ? 'type-proc' : 'type-fix');
+    const ident = item.ident.toUpperCase();
+    const identClass = isDiverted ? 'diverted-ident' : isAirport ? 'airport-ident' : isNavaid ? 'navaid-ident' : isProc ? 'proc-ident' : '';
+    const href = isAirport ? 'https://www.airnav.com/airport/' + ident : isNavaid ? 'https://airnav.com/cgi-bin/navaid-info?id=' + ident : !isProc ? 'https://www.airnav.com/airspace/fix/' + ident : '#';
+    const trackHTML = (doTrack && item.actualAlt && item.actualSpeed) ? '<div class="fix-track">' + item.actualAlt + ' ft &nbsp;&middot;&nbsp; ' + item.actualSpeed + ' kts</div>' : '';
+    const divertLbl = isDiverted ? '<span style="color:var(--red);font-size:10px;margin-left:6px;">(diverted from)</span>' : '';
+    const sid = sanitizeId(ident);
+    row.innerHTML = '<div class="fix-left"><div><a class="fix-ident ' + identClass + '" href="' + href + '" target="_blank" onclick="event.stopPropagation()">' + displayIdent(item.ident) + '</a>' + divertLbl + '</div>' + trackHTML + (doLoc ? '<div class="fix-name" id="fn-' + sid + '"></div>' : '') + '</div>' + (doLoc ? '<div class="fix-right" id="fr-' + sid + '"></div>' : '');
+    row.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(row.getAttribute('data-copy')); row.classList.add('copied'); setTimeout(() => row.classList.remove('copied'), 800); } catch(e){}
+    });
+    fixList.appendChild(row);
+    if (doLoc) {
+      if (isAirport)       window.dispatchEvent(new CustomEvent('possum:getAirport', { detail: { ident } }));
+      else if (isNavaid)   window.dispatchEvent(new CustomEvent('possum:getNavaid',  { detail: { ident } }));
+      else if (!isProc && item.lat && item.lon) window.dispatchEvent(new CustomEvent('possum:getFix', { detail: { ident } }));
+    }
+  });
+}
+
+window.addEventListener('possum:locationUpdate', (e) => {
+  const { ident, name, location } = e.detail;
+  const sid = sanitizeId(ident.toUpperCase());
+  const nameEl  = document.getElementById('fn-' + sid);
+  const rightEl = document.getElementById('fr-' + sid);
+  if (nameEl  && name)     nameEl.textContent  = name;
+  if (rightEl && location) rightEl.textContent = location;
+});
+
+showTrack.addEventListener('change', () => renderTokens(lastTokens));
+showLoc.addEventListener('change',   () => renderTokens(lastTokens));
+
+prevBtn.addEventListener('click', () => { if (currentIndex > 0) { currentIndex--; loadCandidate(currentIndex); } });
+nextBtn.addEventListener('click', () => { if (currentIndex < flightCandidates.length - 1) { currentIndex++; loadCandidate(currentIndex); } });
+
+function updateNavStrip() {
+  fCounter.textContent = (currentIndex + 1) + ' / ' + flightCandidates.length;
+  const c = flightCandidates[currentIndex];
+  fDateLbl.textContent = c ? c.dateLabel + ' ' + c.timeLabel + ' ' + c.orig + '\u2192' + c.dest : '';
+  prevBtn.disabled = currentIndex === 0;
+  nextBtn.disabled = currentIndex === flightCandidates.length - 1;
+}
+
+function setStatus(type, msg) { statusBar.className = type; statusText.textContent = msg; }
+function sanitizeId(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); }
+function displayIdent(ident) {
+  const words = {1:'one',2:'two',3:'three',4:'four',5:'five',6:'six',7:'seven',8:'eight',9:'nine'};
+  if (ident.includes('.')) { const [a,b] = ident.split('.'); return displayIdent(a) + ' ' + b.toLowerCase(); }
+  const m = ident.match(/^([A-Z]+)(\d)$/i);
+  if (m) return m[1].toLowerCase() + ' ' + (words[m[2]] || m[2]);
+  return ident.toLowerCase();
+}
+</script>
+</body>
+</html>
