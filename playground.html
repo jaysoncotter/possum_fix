@@ -8,781 +8,590 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
   :root {
-    --bg:        #0a0a0c;
-    --surface:   #111116;
-    --border:    #1e1e28;
-    --accent:    #4af;
-    --text:      #c8c8d8;
-    --muted:     #555566;
-    --header-h:  38px;
-    --panel-w:   260px;
-
-    /* ROY G BIV altitude colors */
-    --alt-red:    #ff2222;
-    --alt-orange: #ff7700;
-    --alt-yellow: #ffe000;
-    --alt-green:  #22dd44;
-    --alt-blue:   #2288ff;
-    --alt-indigo: #4444dd;
-    --alt-violet: #9933cc;
-
-    /* BSCo brand */
-    --bsco-gold:  #d4a017;
-    --bsco-bg:    rgba(10,10,14,0.92);
+    --bg:       #0a0c0f;
+    --surface:  #111318;
+    --border:   #1e2128;
+    --border2:  #2a2f3a;
+    --text:     #e8eaf0;
+    --muted:    #6a7585;
+    --accent:   #e85d26;
+    --accent2:  #f07940;
+    --blue:     #4a90d9;
+    --green:    #3db87a;
+    --yellow:   #f0c040;
+    --red:      #e85555;
+    --purple:   #8b6fd4;
+    --mono:     'Courier New', monospace;
+    --sans:     'Trebuchet MS', 'Segoe UI', sans-serif;
+    --panel-w:  270px;
+    --header-h: 42px;
+    --status-h: 32px;
+    --c-red:    #ff3333;
+    --c-orange: #ff8800;
+    --c-yellow: #ffe000;
+    --c-green:  #22dd55;
+    --c-blue:   #2288ff;
+    --c-indigo: #4444dd;
+    --c-violet: #9933cc;
+    --bsco-gold: #d4a017;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; overflow: hidden; }
 
-  html, body {
-    height: 100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Courier New', 'Consolas', monospace;
-    overflow: hidden;
-  }
-
-  /* ── HEADER ─────────────────────────────────────────── */
   #header {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: var(--header-h);
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    padding: 0 10px;
-    gap: 12px;
-    z-index: 1000;
-    font-size: 12px;
+    position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 12px; gap: 10px; z-index: 1000;
   }
+  .logo-link { display: flex; align-items: center; gap: 6px; text-decoration: none; color: var(--text); flex-shrink: 0; }
+  .logo-link .paw  { font-size: 18px; }
+  .logo-link .word { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .page-title { font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+  #flight-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #flight-meta span { color: var(--blue); }
 
-  #header .logo {
-    font-size: 13px;
-    font-weight: bold;
-    color: var(--accent);
-    letter-spacing: 2px;
-    white-space: nowrap;
+  #status-bar {
+    position: fixed; top: var(--header-h); left: 0; right: 0; height: var(--status-h);
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 12px; gap: 8px;
+    font-family: var(--mono); font-size: 11px; color: var(--muted); z-index: 999;
   }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  #status-bar.loading .dot { background: var(--yellow); animation: pulse 1s ease-in-out infinite; }
+  #status-bar.ok      .dot { background: var(--green); }
+  #status-bar.error   .dot { background: var(--red); }
+  #status-bar.waiting .dot { background: var(--purple); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  #header .logo span { opacity: 0.5; font-weight: normal; }
-
-  #flight-info {
-    color: var(--muted);
-    font-size: 11px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 1;
-  }
-
-  #flight-info b { color: var(--text); }
-
-  .header-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-family: inherit;
-    font-size: 10px;
-    padding: 3px 7px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.15s;
-  }
-  .header-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-  /* ── MAP ─────────────────────────────────────────────── */
   #map {
     position: fixed;
-    top: var(--header-h);
-    left: 0; right: 0; bottom: 0;
-    z-index: 1;
+    top: calc(var(--header-h) + var(--status-h));
+    left: 0; right: 0; bottom: 0; z-index: 1;
   }
 
-  /* ── SLIDE PANEL ─────────────────────────────────────── */
   #panel-tab {
-    position: fixed;
-    top: 50%;
-    left: 0;
+    position: fixed; top: 50%; right: 0;
     transform: translateY(-50%);
     z-index: 900;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: none;
-    padding: 10px 5px;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.2s;
-    user-select: none;
+    border: 1px solid var(--border); border-right: none;
+    padding: 10px 7px;
+    font-family: var(--mono); font-size: 13px; font-weight: bold;
+    color: var(--muted); cursor: pointer;
+    transition: all 0.2s; user-select: none; letter-spacing: 1px;
   }
   #panel-tab:hover { color: var(--accent); border-color: var(--accent); }
-  #panel-tab.open { left: var(--panel-w); color: var(--accent); }
+  #panel-tab.open  { right: var(--panel-w); color: var(--accent); border-color: var(--accent); }
 
   #side-panel {
     position: fixed;
-    top: var(--header-h);
-    left: calc(-1 * var(--panel-w));
-    width: var(--panel-w);
-    bottom: 0;
-    background: rgba(10,10,14,0.96);
-    border-right: 1px solid var(--border);
+    top: calc(var(--header-h) + var(--status-h));
+    right: calc(-1 * var(--panel-w));
+    width: var(--panel-w); bottom: 0;
+    background: rgba(10,12,15,0.97);
+    border-left: 1px solid var(--border);
     z-index: 800;
-    transition: left 0.25s cubic-bezier(0.4,0,0.2,1);
-    display: flex;
-    flex-direction: column;
+    transition: right 0.25s cubic-bezier(0.4,0,0.2,1);
+    display: flex; flex-direction: column;
     backdrop-filter: blur(8px);
   }
-  #side-panel.open { left: 0; }
+  #side-panel.open { right: 0; }
 
   #panel-header {
-    padding: 10px 12px 8px;
-    border-bottom: 1px solid var(--border);
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
   }
-  #panel-header .route { color: var(--accent); font-size: 11px; font-weight: bold; }
+  #panel-route { color: var(--accent); font-size: 11px; font-weight: bold; }
 
-  #fix-list {
-    overflow-y: auto;
-    flex: 1;
-    padding: 4px 0;
+  #panel-options {
+    padding: 5px 12px; border-bottom: 1px solid var(--border);
+    display: flex; gap: 12px; flex-shrink: 0;
   }
+  .toggle-label {
+    display: flex; align-items: center; gap: 4px;
+    font-family: var(--mono); font-size: 10px; color: var(--muted); cursor: pointer; user-select: none;
+  }
+  .toggle-label input { accent-color: var(--accent); cursor: pointer; }
+
+  #fix-list { overflow-y: auto; flex: 1; padding: 2px 0; }
   #fix-list::-webkit-scrollbar { width: 3px; }
   #fix-list::-webkit-scrollbar-track { background: transparent; }
-  #fix-list::-webkit-scrollbar-thumb { background: var(--border); }
+  #fix-list::-webkit-scrollbar-thumb { background: var(--border2); }
 
   .fix-item {
-    display: flex;
-    align-items: flex-start;
-    padding: 5px 12px;
-    cursor: pointer;
-    border-left: 2px solid transparent;
-    transition: background 0.1s;
+    display: flex; align-items: flex-start; padding: 5px 12px;
+    cursor: pointer; border-left: 3px solid transparent;
+    transition: background 0.1s; gap: 8px;
   }
-  .fix-item:hover { background: rgba(68,170,255,0.06); }
-  .fix-item.active {
-    background: rgba(68,170,255,0.10);
-    border-left-color: var(--accent);
-  }
+  .fix-item:hover { background: rgba(255,255,255,0.03); }
+  .fix-item.active { background: rgba(232,93,38,0.08); border-left-color: var(--accent); }
+  .fix-item.type-airport { border-left-color: var(--blue); }
+  .fix-item.type-navaid  { border-left-color: var(--green); }
+  .fix-item.type-proc    { border-left-color: var(--purple); }
 
-  .alt-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    margin-top: 4px;
-    margin-right: 8px;
-  }
-
-  .fix-name {
-    font-size: 11px;
-    color: var(--text);
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .fix-meta {
-    font-size: 9px;
-    color: var(--muted);
-    margin-top: 1px;
-  }
-  .fix-alt {
-    font-size: 10px;
-    margin-top: 1px;
-  }
+  .alt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+  .fix-ident           { font-family: var(--mono); font-size: 11px; font-weight: 600; color: #c8d0dc; }
+  .fix-ident.airport   { color: var(--blue); font-size: 12px; }
+  .fix-ident.navaid    { color: var(--green); }
+  .fix-ident.proc      { color: var(--purple); font-size: 10px; }
+  .fix-name-label      { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .fix-track           { font-family: var(--mono); font-size: 10px; color: var(--green); margin-top: 1px; }
+  .fix-loc             { font-size: 9px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 
   #panel-leg-nav {
-    border-top: 1px solid var(--border);
-    padding: 6px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 10px;
-    color: var(--muted);
-    flex-shrink: 0;
+    border-top: 1px solid var(--border); padding: 6px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono); font-size: 10px; color: var(--muted); flex-shrink: 0;
   }
   #panel-leg-nav button {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-family: inherit;
-    font-size: 11px;
-    padding: 2px 7px;
-    cursor: pointer;
-    transition: all 0.15s;
+    background: var(--border2); border: 1px solid var(--border2); color: var(--text);
+    font-family: var(--mono); font-size: 11px; padding: 2px 8px; cursor: pointer; transition: all 0.15s;
   }
-  #panel-leg-nav button:hover { border-color: var(--accent); color: var(--accent); }
+  #panel-leg-nav button:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #panel-leg-nav button:disabled { opacity: 0.3; cursor: default; }
+  #panel-leg-nav button:disabled:hover { background: var(--border2); border-color: var(--border2); color: var(--text); }
 
-  /* ── LEGEND ──────────────────────────────────────────── */
   #legend {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: var(--bsco-bg);
-    border: 1px solid var(--border);
-    padding: 8px 10px;
-    z-index: 500;
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.5px;
-    min-width: 100px;
-    backdrop-filter: blur(8px);
+    position: fixed; bottom: 70px; left: 16px;
+    background: rgba(10,12,15,0.92); border: 1px solid var(--border);
+    padding: 7px 10px; z-index: 500;
+    font-family: var(--mono); font-size: 9px; color: var(--muted); backdrop-filter: blur(6px);
   }
-  #legend .legend-title {
-    color: var(--muted);
-    margin-bottom: 5px;
-    font-size: 8px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  .legend-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 2px;
-  }
-  .legend-swatch {
-    width: 10px; height: 4px;
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
+  .legend-title { margin-bottom: 4px; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; }
+  .legend-row   { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .legend-swatch { width: 12px; height: 3px; border-radius: 2px; flex-shrink: 0; }
 
-  /* ── BSCo AD BLOCK ───────────────────────────────────── */
   #bsco-ad {
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    background: var(--bsco-bg);
-    border: 1px solid #2a2010;
-    z-index: 500;
-    width: 160px;
-    transition: all 0.2s;
-    backdrop-filter: blur(8px);
-    overflow: hidden;
+    position: fixed; bottom: 16px; left: 16px;
+    background: rgba(10,10,8,0.93); border: 1px solid #2a2010;
+    z-index: 500; width: 158px; transition: all 0.2s; backdrop-filter: blur(6px); overflow: hidden;
   }
-  #bsco-ad.minimized { width: 38px; }
-
+  #bsco-ad.minimized { width: 36px; }
   #bsco-toggle {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: none;
-    border: none;
-    border-bottom: 1px solid #2a2010;
-    padding: 5px 8px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 11px;
-    color: var(--bsco-gold);
-    text-align: left;
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    background: none; border: none; border-bottom: 1px solid #2a2010;
+    padding: 5px 7px; cursor: pointer; font-family: var(--mono); font-size: 10px;
+    color: var(--bsco-gold); text-align: left;
   }
-  #bsco-toggle .bsco-icon { font-size: 14px; line-height: 1; }
-  #bsco-toggle .bsco-chevron { font-size: 9px; color: var(--muted); transition: transform 0.2s; }
-  #bsco-ad.minimized #bsco-toggle .bsco-chevron { transform: rotate(180deg); }
-
-  #bsco-body {
-    padding: 8px;
-    font-size: 9px;
-    color: var(--muted);
-    line-height: 1.5;
-    white-space: nowrap;
-    overflow: hidden;
-  }
+  #bsco-toggle .bi { font-size: 13px; }
+  #bsco-toggle .bl { font-size: 8px; letter-spacing: 1px; opacity: 0.8; white-space: nowrap; }
+  #bsco-toggle .bc { font-size: 9px; color: var(--muted); transition: transform 0.2s; flex-shrink: 0; }
+  #bsco-ad.minimized .bl { display: none; }
+  #bsco-ad.minimized .bc { transform: rotate(180deg); }
+  #bsco-body { padding: 7px 8px; font-size: 9px; color: var(--muted); line-height: 1.5; }
   #bsco-ad.minimized #bsco-body { display: none; }
-
   #bsco-body a {
-    display: block;
-    color: var(--bsco-gold);
-    text-decoration: none;
-    font-size: 10px;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    margin-top: 5px;
-    border: 1px solid #2a2010;
-    padding: 3px 6px;
-    text-align: center;
-    transition: all 0.15s;
+    display: block; margin-top: 5px; color: var(--bsco-gold); text-decoration: none;
+    font-size: 9px; font-weight: bold; letter-spacing: 0.5px;
+    border: 1px solid #2a2010; padding: 3px 6px; text-align: center; transition: all 0.15s;
   }
-  #bsco-body a:hover { border-color: var(--bsco-gold); background: rgba(212,160,23,0.08); }
+  #bsco-body a:hover { border-color: var(--bsco-gold); background: rgba(212,160,23,0.07); }
 
-  /* ── POPUPS ──────────────────────────────────────────── */
+  #no-extension {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; padding: 48px 24px; text-align: center; gap: 14px;
+  }
+  #no-extension.visible { display: flex; }
+  .big-paw { font-size: 48px; opacity: 0.2; }
+  #no-extension h2 { font-size: 15px; font-weight: 600; color: var(--text); }
+  #no-extension p  { font-size: 11px; color: var(--muted); max-width: 300px; line-height: 1.7; }
+  .ext-note {
+    background: var(--surface); border: 1px solid var(--border2);
+    padding: 10px 14px; font-family: var(--mono); font-size: 10px; color: var(--muted); max-width: 340px; text-align: left;
+  }
+  .ext-note strong { color: var(--accent); }
+
+  #disclaimer {
+    display: none; position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(240,192,64,0.05); border-top: 1px solid rgba(240,192,64,0.12);
+    padding: 4px 16px; font-size: 10px; color: rgba(240,192,64,0.55);
+    font-family: var(--mono); text-align: center; z-index: 600;
+  }
+
   .possum-popup .leaflet-popup-content-wrapper {
-    background: #0f0f14;
-    border: 1px solid #2a2a3a;
-    border-radius: 0;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-    color: var(--text);
+    background: #0d0f14; border: 1px solid #2a2a3a; border-radius: 0;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.85); color: var(--text);
   }
-  .possum-popup .leaflet-popup-tip { background: #0f0f14; }
-  .possum-popup .leaflet-popup-content { margin: 10px 14px; font-family: 'Courier New', monospace; font-size: 11px; }
+  .possum-popup .leaflet-popup-tip { background: #0d0f14; }
+  .possum-popup .leaflet-popup-content { margin: 10px 13px; font-family: 'Courier New', monospace; font-size: 11px; }
+  .pp-name { font-size: 13px; font-weight: bold; color: #f07940; letter-spacing: 1px; margin-bottom: 4px; }
+  .pp-sub  { font-size: 10px; color: var(--muted); margin-bottom: 5px; }
+  .pp-row  { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 2px; }
+  .pp-lbl  { color: var(--muted); font-size: 10px; }
+  .pp-val  { color: var(--text); font-size: 10px; text-align: right; }
+  .pp-badge { display: inline-flex; align-items: center; gap: 4px; margin-top: 5px; padding: 2px 6px; font-size: 9px; font-weight: bold; }
+  .pp-link {
+    display: block; margin-top: 7px; color: var(--accent); font-size: 10px; text-decoration: none;
+    border: 1px solid #2a2010; padding: 3px 6px; text-align: center; transition: all 0.15s;
+  }
+  .pp-link:hover { border-color: var(--accent); background: rgba(232,93,38,0.08); }
 
-  .pp-fix-name { font-size: 13px; font-weight: bold; color: #4af; letter-spacing: 1px; margin-bottom: 6px; }
-  .pp-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 2px; }
-  .pp-label { color: var(--muted); font-size: 10px; }
-  .pp-val { color: var(--text); font-size: 10px; }
-  .pp-alt-badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    margin-top: 6px; padding: 2px 6px;
-    border-radius: 2px; font-size: 10px; font-weight: bold;
-  }
-  .pp-possum-link {
-    display: block; margin-top: 8px;
-    color: #4af; font-size: 10px; text-decoration: none;
-    border: 1px solid #1a3a4a; padding: 3px 6px; text-align: center;
-    transition: all 0.15s;
-  }
-  .pp-possum-link:hover { border-color: #4af; background: rgba(68,170,255,0.08); }
-
-  /* ── NO EXTENSION STATE ──────────────────────────────── */
-  #no-data {
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 600;
-    text-align: center;
-    pointer-events: none;
-  }
-  #no-data .paw { font-size: 40px; opacity: 0.15; }
-  #no-data p { color: var(--muted); font-size: 12px; margin-top: 8px; line-height: 1.8; }
-  #no-data.hidden { display: none; }
-
-  /* Loading */
-  #loading {
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 700;
-    color: var(--accent);
-    font-size: 11px;
-    letter-spacing: 2px;
-    animation: blink 1s step-end infinite;
-  }
-  @keyframes blink { 50% { opacity: 0; } }
-  #loading.hidden { display: none; }
-
-  /* ── FIX LABELS (permanent tooltips) ────────────────────── */
-  .possum-label {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-  }
-  .possum-label::before { display: none !important; }
-  .possum-label .leaflet-tooltip-content {
-    font-family: 'Courier New', 'Consolas', monospace;
-    font-size: 9px;
-    font-weight: bold;
-    letter-spacing: 0.8px;
-    text-shadow:
-      -1px -1px 0 #000,
-       1px -1px 0 #000,
-      -1px  1px 0 #000,
-       1px  1px 0 #000,
-       0     2px 4px rgba(0,0,0,0.9);
-    white-space: nowrap;
-    pointer-events: none;
-  }
-
-  /* Leaflet overrides */
-  .leaflet-control-zoom a {
-    background: var(--surface) !important;
-    color: var(--muted) !important;
-    border-color: var(--border) !important;
-  }
+  .leaflet-control-zoom a { background: var(--surface) !important; color: var(--muted) !important; border-color: var(--border) !important; }
   .leaflet-control-zoom a:hover { color: var(--accent) !important; }
-  .leaflet-control-attribution {
-    background: rgba(10,10,14,0.7) !important;
-    color: var(--muted) !important;
-    font-size: 8px !important;
-  }
+  .leaflet-control-attribution { background: rgba(10,12,15,0.75) !important; color: var(--muted) !important; font-size: 8px !important; }
   .leaflet-control-attribution a { color: var(--muted) !important; }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <div id="header">
-  <div class="logo">🐾 <span>POSSUM</span> PLAYGROUND</div>
-  <div id="flight-info">no flight loaded</div>
-  <button class="header-btn" onclick="togglePanel()">≡ FIXES</button>
-  <button class="header-btn" onclick="resetView()">⊙ RESET</button>
-  <a href="https://possumfix.com" class="header-btn" style="text-decoration:none">← POSSUM</a>
+  <a class="logo-link" href="/" title="Back to Possum">
+    <span class="paw">🐾</span><span class="word">Possum</span>
+  </a>
+  <div class="page-title">Playground</div>
+  <div id="flight-meta">—</div>
 </div>
 
-<!-- PANEL TAB -->
-<div id="panel-tab" onclick="togglePanel()">FIXES</div>
+<div id="status-bar" class="waiting">
+  <div class="dot"></div>
+  <span id="status-text">Waiting for Playing Possum extension...</span>
+</div>
 
-<!-- SIDE PANEL -->
+<div id="map">
+  <div id="no-extension">
+    <div class="big-paw">🐾</div>
+    <h2>Playing Possum extension not detected</h2>
+    <p>This page requires the Playing Possum browser extension to fetch flight route data from FlightAware.</p>
+    <div class="ext-note">
+      <strong>To use this page:</strong><br><br>
+      Install the Playing Possum Chrome extension,<br>then reload with a callsign:<br><br>
+      <span style="color:var(--blue)">playground.html?callsign=AAL328</span><br>
+      <span style="color:var(--muted)">&amp;date=2026-04-05 &nbsp;(optional)</span>
+    </div>
+  </div>
+</div>
+
+<div id="panel-tab" onclick="togglePanel()">&gt;&gt;</div>
+
 <div id="side-panel">
   <div id="panel-header">
-    <span class="route" id="panel-route">—</span>
+    <span id="panel-route">—</span>
     <span id="panel-fix-count">0 fixes</span>
+  </div>
+  <div id="panel-options">
+    <label class="toggle-label"><input type="checkbox" id="show-track" checked> Alt/Spd</label>
+    <label class="toggle-label"><input type="checkbox" id="show-loc" checked> Location</label>
   </div>
   <div id="fix-list"></div>
   <div id="panel-leg-nav">
-    <button onclick="prevLeg()">◀</button>
+    <button id="prev-btn" disabled onclick="prevLeg()">◀</button>
     <span id="leg-label">—</span>
-    <button onclick="nextLeg()">▶</button>
+    <button id="next-btn" disabled onclick="nextLeg()">▶</button>
   </div>
 </div>
 
-<!-- MAP -->
-<div id="map"></div>
-
-<!-- LEGEND -->
 <div id="legend">
   <div class="legend-title">altitude</div>
-  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-red)"></div> &lt; 3,000 ft</div>
-  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-orange)"></div> 3–10k ft</div>
-  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-yellow)"></div> 10–18k ft</div>
-  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-green)"></div> 18–28k ft</div>
-  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-blue)"></div> 28–35k ft</div>
-  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-indigo)"></div> 35–40k ft</div>
-  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-violet)"></div> 40k+ ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--c-red)"></div> &lt; 4,000 ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--c-orange)"></div> 4 – 11,500 ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--c-yellow)"></div> 11.5 – 20k ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--c-green)"></div> 20 – 30k ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--c-blue)"></div> 30 – 37k ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--c-indigo)"></div> 37 – 42k ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--c-violet)"></div> 42k+ ft</div>
 </div>
 
-<!-- BSCO AD -->
 <div id="bsco-ad">
   <button id="bsco-toggle" onclick="toggleAd()">
-    <span class="bsco-icon">🍌</span>
-    <span style="font-size:9px;letter-spacing:1px;opacity:0.8;">BANANA SANDWICH CO.</span>
-    <span class="bsco-chevron">▲</span>
+    <span class="bi">🍌</span>
+    <span class="bl">BANANA SANDWICH CO.</span>
+    <span class="bc">▲</span>
   </button>
   <div id="bsco-body">
-    <div style="color:#888;font-size:8px;margin-bottom:4px;">AURA COLLECTION</div>
-    <div style="color:#aaa;">Siamese aviator merch.</div>
-    <div style="color:#aaa;">Mugs · Desk mats · More</div>
+    <div style="color:#888;font-size:8px;margin-bottom:3px;letter-spacing:1px">AURA COLLECTION</div>
+    <div style="color:#aaa">Siamese aviator merch.</div>
+    <div style="color:#aaa">Mugs · Desk mats · More</div>
     <a href="https://bananasandwichco.biz" target="_blank">SHOP NOW →</a>
   </div>
 </div>
 
-<!-- STATES -->
-<div id="loading">FETCHING ROUTE DATA...</div>
-<div id="no-data">
-  <div class="paw">🐾</div>
-  <p>No flight loaded.<br>Pass a URL like:<br><code style="color:#4af;font-size:10px;">playground.html?callsign=AAL328&date=2026-04-05</code><br><br>or open from <a href="https://possumfix.com/playing.html" style="color:#4af;">Playing Possum</a></p>
-</div>
+<div id="disclaimer">⚠ Route data from FlightAware — may not reflect actual flown path &nbsp;·&nbsp; Playing Possum is a temporary feature</div>
 
 <script>
-// ── CONFIG ────────────────────────────────────────────────
-const ALT_COLORS = [
-  { max: 3000,  color: '#ff2222', label: 'RED'    },
-  { max: 10000, color: '#ff7700', label: 'ORANGE' },
-  { max: 18000, color: '#ffe000', label: 'YELLOW' },
-  { max: 28000, color: '#22dd44', label: 'GREEN'  },
-  { max: 35000, color: '#2288ff', label: 'BLUE'   },
-  { max: 40000, color: '#4444dd', label: 'INDIGO' },
+const params   = new URLSearchParams(window.location.search);
+const CALLSIGN = (params.get('callsign') || '').toUpperCase().trim();
+const DATE_STR = (params.get('date') || '').trim();
+
+let flightCandidates = [], currentIndex = 0, lastTokens = [];
+let extReady = false, fetchTimeout = null;
+let mapMarkers = [], mapLines = [];
+let panelOpen = false;
+
+const ALT_BANDS = [
+  { max: 4000,     color: '#ff3333', label: 'RED'    },
+  { max: 11500,    color: '#ff8800', label: 'ORANGE' },
+  { max: 20000,    color: '#ffe000', label: 'YELLOW' },
+  { max: 30000,    color: '#22dd55', label: 'GREEN'  },
+  { max: 37000,    color: '#2288ff', label: 'BLUE'   },
+  { max: 42000,    color: '#4444dd', label: 'INDIGO' },
   { max: Infinity, color: '#9933cc', label: 'VIOLET' },
 ];
 
-function altColor(ft) {
-  const n = parseInt(ft) || 0;
-  return ALT_COLORS.find(r => n < r.max) || ALT_COLORS[ALT_COLORS.length - 1];
+function altBand(altStr) {
+  const n = parseAlt(altStr);
+  return ALT_BANDS.find(b => n < b.max) || ALT_BANDS[ALT_BANDS.length - 1];
+}
+function parseAlt(v) {
+  if (!v) return 0;
+  const n = parseFloat(String(v).replace(/,/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+function fmtAlt(v) {
+  const n = parseAlt(v);
+  if (!n) return '—';
+  return n >= 18000 ? 'FL' + Math.round(n/100) : n.toLocaleString() + ' ft';
+}
+function fmtSpd(v) {
+  if (!v) return null;
+  const s = String(v).replace(/,/g,'').trim();
+  return s ? s + ' kt' : null;
 }
 
-function fmtAlt(ft) {
-  const n = parseInt(ft) || 0;
-  if (n >= 18000) return 'FL' + Math.round(n / 100);
-  return n.toLocaleString() + ' ft';
-}
-
-// ── MAP INIT ──────────────────────────────────────────────
-const map = L.map('map', {
-  center: [37, -95],
-  zoom: 5,
-  zoomControl: true,
-});
-
+// Map
+const map = L.map('map', { center:[37,-95], zoom:5, zoomControl:true });
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution: '© OpenStreetMap © CartoDB',
-  subdomains: 'abcd',
-  maxZoom: 19,
+  attribution:'© OpenStreetMap © CartoDB', subdomains:'abcd', maxZoom:19
 }).addTo(map);
 
-// ── STATE ─────────────────────────────────────────────────
-let flightData   = null;   // legs array from extension
-let currentLeg   = 0;
-let markers      = [];
-let polylines    = [];
-let activeMarker = null;
-let panelOpen    = false;
+// DOM
+const statusBar  = document.getElementById('status-bar');
+const statusText = document.getElementById('status-text');
+const flightMeta = document.getElementById('flight-meta');
+const fixList    = document.getElementById('fix-list');
+const noExt      = document.getElementById('no-extension');
+const panelRoute = document.getElementById('panel-route');
+const fixCount   = document.getElementById('panel-fix-count');
+const legLabel   = document.getElementById('leg-label');
+const prevBtn    = document.getElementById('prev-btn');
+const nextBtn    = document.getElementById('next-btn');
+const showTrack  = document.getElementById('show-track');
+const showLoc    = document.getElementById('show-loc');
+const disclaimer = document.getElementById('disclaimer');
 
-// ── URL PARAMS ────────────────────────────────────────────
-const params = new URLSearchParams(window.location.search);
-const callsign = params.get('callsign') || '';
-const date     = params.get('date')     || '';
-
-if (callsign) {
-  document.getElementById('flight-info').innerHTML =
-    `<b>${callsign}</b> · ${date || '—'} · waiting for extension data`;
-  document.getElementById('loading').classList.remove('hidden');
-  document.getElementById('no-data').classList.add('hidden');
+// Boot
+if (!CALLSIGN) {
+  setStatus('error', 'No callsign in URL — try playground.html?callsign=AAL328');
 } else {
-  document.getElementById('loading').classList.add('hidden');
+  flightMeta.innerHTML = `<span>${CALLSIGN}</span>${DATE_STR ? ' &nbsp;&middot;&nbsp; ' + DATE_STR : ''}`;
+  waitForExtension();
 }
 
-// ── EXTENSION MESSAGE LISTENER ────────────────────────────
-// Playing Possum extension posts flight data as window message
-window.addEventListener('message', (e) => {
-  if (e.data && e.data.type === 'POSSUM_FLIGHT_DATA') {
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('no-data').classList.add('hidden');
-    loadFlightData(e.data.payload);
+function waitForExtension() {
+  setStatus('waiting', 'Waiting for Playing Possum extension...');
+  window.addEventListener('possum:ready', () => {
+    extReady = true;
+    clearTimeout(fetchTimeout);
+    setStatus('loading', 'Fetching flight history for ' + CALLSIGN + '...');
+    requestFetch();
+  }, { once: true });
+  fetchTimeout = setTimeout(() => {
+    if (!extReady) { noExt.classList.add('visible'); setStatus('error', 'Playing Possum extension not detected.'); }
+  }, 4000);
+}
+
+function requestFetch() {
+  window.dispatchEvent(new CustomEvent('possum:fetch', { detail: { callsign: CALLSIGN, date: DATE_STR } }));
+}
+
+window.addEventListener('possum:result', (e) => {
+  const { candidates, error } = e.detail;
+  if (error || !candidates || candidates.length === 0) {
+    const msg = error || 'No flight history found for ' + CALLSIGN;
+    setStatus('error', msg);
+    fixList.innerHTML = `<div style="padding:24px 16px;text-align:center;color:var(--muted);font-size:11px;line-height:1.8">${msg}<br><button onclick="requestFetch()" style="margin-top:8px;background:var(--accent);border:none;color:#fff;font-family:'Courier New',monospace;font-size:10px;padding:5px 12px;cursor:pointer">Retry</button></div>`;
+    return;
   }
+  flightCandidates = candidates;
+  currentIndex = 0;
+  if (DATE_STR) {
+    const target = new Date(DATE_STR + 'T12:00:00Z').getTime();
+    let minDiff = Infinity;
+    candidates.forEach((c,i) => { const d = Math.abs(c.timestamp - target); if (d < minDiff) { minDiff = d; currentIndex = i; } });
+  } else {
+    currentIndex = candidates.length - 1;
+  }
+  updateLegNav();
+  disclaimer.style.display = 'block';
+  loadCandidate(currentIndex);
 });
 
-// Also listen for direct data injection (for testing)
-window.loadDemo = function() {
-  loadFlightData(DEMO_DATA);
-};
-
-// ── LOAD FLIGHT DATA ──────────────────────────────────────
-function loadFlightData(data) {
-  flightData = data;
-  currentLeg = 0;
-  renderLeg(0);
+function loadCandidate(idx) {
+  const c = flightCandidates[idx];
+  if (!c) return;
+  clearMap();
+  setStatus('loading', 'Loading route — ' + c.dateLabel + ' ' + c.timeLabel + '...');
+  flightMeta.innerHTML = `<span>${CALLSIGN}</span> &nbsp;&middot;&nbsp; ${c.dateLabel} ${c.timeLabel} &nbsp;&middot;&nbsp; ${c.orig}&rarr;${c.dest}`;
+  panelRoute.textContent = c.orig + ' → ' + c.dest;
+  window.dispatchEvent(new CustomEvent('possum:load', { detail: { candidate: c, callsign: CALLSIGN } }));
 }
 
-function renderLeg(legIdx) {
-  // Clear existing layers
-  markers.forEach(m => map.removeLayer(m));
-  polylines.forEach(p => map.removeLayer(p));
-  markers = [];
-  polylines = [];
+window.addEventListener('possum:tokens', (e) => {
+  const { tokens, routeStrText, error } = e.detail;
+  if (error) { setStatus('error', 'Load error: ' + error); return; }
+  lastTokens = tokens || [];
+  const c = flightCandidates[currentIndex];
+  setStatus('ok', lastTokens.length + ' fixes loaded' + (c ? ' — ' + c.dateLabel : ''));
+  fixCount.textContent = lastTokens.length + ' fixes';
+  updateLegNav();
+  renderPanel(lastTokens);
+  renderMap(lastTokens, c);
+});
 
-  if (!flightData || !flightData.legs || !flightData.legs[legIdx]) return;
+window.addEventListener('possum:locationUpdate', (e) => {
+  const { ident, name, location } = e.detail;
+  const sid = sanitizeId(ident.toUpperCase());
+  const nameEl = document.getElementById('fn-' + sid);
+  const locEl  = document.getElementById('fl-' + sid);
+  if (nameEl && name)     nameEl.textContent = name;
+  if (locEl  && location) locEl.textContent  = location;
+  const ppName = document.getElementById('pp-name-' + sid);
+  const ppLoc  = document.getElementById('pp-loc-'  + sid);
+  if (ppName && name)     ppName.textContent = name;
+  if (ppLoc  && location) ppLoc.textContent  = location;
+});
 
-  const leg    = flightData.legs[legIdx];
-  const fixes  = leg.fixes || [];
-  const flight = flightData.callsign || callsign;
-  const dep    = leg.departure || '???';
-  const arr    = leg.arrival   || '???';
+function renderPanel(tokens) {
+  fixList.innerHTML = '';
+  const doTrack = showTrack.checked, doLoc = showLoc.checked;
+  tokens.forEach((item, idx) => {
+    const ident     = item.ident.toUpperCase();
+    const isAirport = item.type === 'airport';
+    const isNavaid  = !isAirport && ident.length === 3 && !/\d/.test(ident);
+    const isProc    = /\d/.test(ident) && (ident.length > 4 || ident.includes('.'));
+    const isDiverted= !!item.isDiverted;
+    const band      = altBand(item.actualAlt);
+    const sid       = sanitizeId(ident);
+    const dotColor  = (item.actualAlt && parseAlt(item.actualAlt) > 0) ? band.color : '#444';
 
-  // Header
-  document.getElementById('flight-info').innerHTML =
-    `<b>${flight}</b> · ${dep} → ${arr} · ${leg.date || date} · ${fixes.length} fixes`;
-  document.getElementById('panel-route').textContent = `${dep} → ${arr}`;
-  document.getElementById('panel-fix-count').textContent = `${fixes.length} fixes`;
-  document.getElementById('leg-label').textContent =
-    `${legIdx + 1} / ${flightData.legs.length}`;
+    const div = document.createElement('div');
+    div.className = 'fix-item ' + (isDiverted ? '' : isAirport ? 'type-airport' : isNavaid ? 'type-navaid' : isProc ? 'type-proc' : 'type-fix');
+    div.dataset.idx = idx;
 
-  // Build fix list in panel
-  buildFixList(fixes, dep, arr, flight);
+    const identClass = isDiverted ? '' : isAirport ? 'airport' : isNavaid ? 'navaid' : isProc ? 'proc' : '';
+    div.innerHTML = `
+      <div class="alt-dot" style="background:${dotColor}${isAirport?';border:1px solid rgba(255,255,255,0.3)':''}"></div>
+      <div style="min-width:0;flex:1">
+        <div class="fix-ident ${identClass}">${displayIdent(item.ident)}${isDiverted?'<span style="color:var(--red);font-size:9px"> (diverted)</span>':''}</div>
+        ${doLoc ? `<div class="fix-name-label" id="fn-${sid}"></div>` : ''}
+        ${(doTrack && item.actualAlt) ? `<div class="fix-track">${fmtAlt(item.actualAlt)}${item.actualSpeed?' · '+fmtSpd(item.actualSpeed):''}</div>` : ''}
+        ${doLoc ? `<div class="fix-loc" id="fl-${sid}"></div>` : ''}
+      </div>`;
 
-  if (fixes.length === 0) return;
+    div.addEventListener('click', () => {
+      highlightPanel(idx);
+      if (item.lat && item.lon) { map.panTo([item.lat, item.lon], {animate:true}); if (mapMarkers[idx]) mapMarkers[idx].openPopup(); }
+    });
+    fixList.appendChild(div);
 
-  // Draw polyline segments with altitude color
-  for (let i = 0; i < fixes.length - 1; i++) {
-    const a = fixes[i];
-    const b = fixes[i + 1];
-    if (!a.lat || !a.lon || !b.lat || !b.lon) continue;
+    if (doLoc) {
+      if (isAirport)     window.dispatchEvent(new CustomEvent('possum:getAirport', {detail:{ident}}));
+      else if (isNavaid) window.dispatchEvent(new CustomEvent('possum:getNavaid',  {detail:{ident}}));
+      else if (!isProc && item.lat && item.lon) window.dispatchEvent(new CustomEvent('possum:getFix', {detail:{ident}}));
+    }
+  });
+}
 
-    const midAlt = ((parseInt(a.altitude) || 0) + (parseInt(b.altitude) || 0)) / 2;
-    const col    = altColor(midAlt).color;
+function highlightPanel(idx) {
+  document.querySelectorAll('.fix-item').forEach(el => el.classList.remove('active'));
+  const el = document.querySelector(`.fix-item[data-idx="${idx}"]`);
+  if (el) { el.classList.add('active'); el.scrollIntoView({block:'nearest', behavior:'smooth'}); }
+}
 
-    const pl = L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
-      color: col,
-      weight: 3,
-      opacity: 0.85,
+showTrack.addEventListener('change', () => renderPanel(lastTokens));
+showLoc.addEventListener('change',   () => renderPanel(lastTokens));
+
+function clearMap() {
+  mapMarkers.forEach(m => { if (m) map.removeLayer(m); });
+  mapLines.forEach(l => { if (l) map.removeLayer(l); });
+  mapMarkers = []; mapLines = [];
+}
+
+function renderMap(tokens, candidate) {
+  clearMap();
+  if (!tokens || !tokens.length) return;
+  const valid = tokens.filter(t => t.lat && t.lon && !isNaN(t.lat) && !isNaN(t.lon));
+  if (!valid.length) { setStatus('error', 'No coordinates — FlightAware may require login'); return; }
+
+  // Colored polyline segments
+  for (let i = 0; i < tokens.length - 1; i++) {
+    const a = tokens[i], b = tokens[i+1];
+    if (!a.lat || !a.lon || !b.lat || !b.lon || isNaN(a.lat) || isNaN(b.lat)) continue;
+    const midAlt = (parseAlt(a.actualAlt) + parseAlt(b.actualAlt)) / 2;
+    const line = L.polyline([[a.lat,a.lon],[b.lat,b.lon]], {
+      color: altBand(midAlt).color, weight: 3, opacity: 0.88
     }).addTo(map);
-    polylines.push(pl);
+    mapLines.push(line);
   }
 
-  // Draw fix markers
-  fixes.forEach((fix, idx) => {
-    if (!fix.lat || !fix.lon) return;
-
-    const col  = altColor(fix.altitude).color;
-    const name = (fix.name || fix.id || '???').toUpperCase();
-    const isEndpoint = idx === 0 || idx === fixes.length - 1;
+  // Markers
+  tokens.forEach((item, idx) => {
+    if (!item.lat || !item.lon || isNaN(item.lat)) { mapMarkers.push(null); return; }
+    const ident     = item.ident.toUpperCase();
+    const isAirport = item.type === 'airport';
+    const band      = altBand(item.actualAlt);
+    const dotColor  = (item.actualAlt && parseAlt(item.actualAlt) > 0) ? band.color : '#888888';
+    const size      = isAirport ? 13 : 8;
+    const sid       = sanitizeId(ident);
 
     const icon = L.divIcon({
       className: '',
-      html: `<div style="
-        width:${isEndpoint ? 14 : 9}px;
-        height:${isEndpoint ? 14 : 9}px;
-        background:${col};
-        border-radius:50%;
-        border:${isEndpoint ? '2px solid #fff' : '1px solid rgba(255,255,255,0.3)'};
-        box-shadow:0 0 ${isEndpoint ? 8 : 4}px ${col};
-        cursor:pointer;
-      "></div>`,
-      iconSize: [isEndpoint ? 14 : 9, isEndpoint ? 14 : 9],
-      iconAnchor: [isEndpoint ? 7 : 4.5, isEndpoint ? 7 : 4.5],
+      html: `<div style="width:${size}px;height:${size}px;background:${dotColor};border-radius:50%;border:${isAirport?'2px solid rgba(255,255,255,0.6)':'1px solid rgba(255,255,255,0.2)'};box-shadow:0 0 ${isAirport?10:5}px ${dotColor}88;cursor:pointer"></div>`,
+      iconSize: [size,size], iconAnchor: [size/2,size/2]
     });
 
-    const marker = L.marker([fix.lat, fix.lon], { icon })
+    const possumLink = isAirport
+      ? `https://possumfix.com/?airport=${ident}`
+      : `https://possumfix.com/beta.html?q=${ident.toLowerCase()}&mode=both${candidate?'&airport='+candidate.orig:''}`;
+
+    const popup = `
+      <div class="pp-name">${displayIdent(item.ident)}</div>
+      <div class="pp-sub" id="pp-name-${sid}"></div>
+      ${item.actualAlt?`<div class="pp-row"><span class="pp-lbl">ALT</span><span class="pp-val">${fmtAlt(item.actualAlt)}</span></div>`:''}
+      ${item.actualSpeed?`<div class="pp-row"><span class="pp-lbl">SPD</span><span class="pp-val">${fmtSpd(item.actualSpeed)}</span></div>`:''}
+      <div class="pp-row"><span class="pp-lbl">LAT/LON</span><span class="pp-val" style="font-size:9px">${item.lat.toFixed(3)}, ${item.lon.toFixed(3)}</span></div>
+      ${item.actualAlt && parseAlt(item.actualAlt)>0?`<div class="pp-badge" style="background:${band.color}22;border:1px solid ${band.color}44;color:${band.color}"><span style="width:6px;height:6px;border-radius:50%;background:${band.color};display:inline-block"></span>${band.label}</div>`:''}
+      <div class="pp-sub" id="pp-loc-${sid}" style="margin-top:4px"></div>
+      <a class="pp-link" href="${possumLink}" target="_blank">🐾 SEARCH IN POSSUM →</a>`;
+
+    const marker = L.marker([item.lat,item.lon], {icon})
       .addTo(map)
-      .bindPopup(buildPopup(fix, name, dep, arr, flight), {
-        className: 'possum-popup',
-        maxWidth: 240,
-        minWidth: 180,
-      })
-      .bindTooltip(`<span style="color:${col}">${name}</span>`, {
-        permanent: true,
-        direction: 'top',
-        offset: [0, isEndpoint ? -10 : -7],
-        className: 'possum-label',
-      });
-
-    marker._fixIdx = idx;
-    marker.on('click', () => highlightFix(idx));
-    markers.push(marker);
+      .bindPopup(popup, {className:'possum-popup', maxWidth:220, minWidth:170});
+    marker.on('click', () => highlightPanel(idx));
+    mapMarkers.push(marker);
   });
 
-  // Fit map to route
-  const validFixes = fixes.filter(f => f.lat && f.lon);
-  if (validFixes.length > 0) {
-    const bounds = L.latLngBounds(validFixes.map(f => [f.lat, f.lon]));
-    map.fitBounds(bounds, { padding: [40, 40] });
-  }
+  map.fitBounds(L.latLngBounds(valid.map(t=>[t.lat,t.lon])), {padding:[50,50]});
 }
 
-// ── BUILD POPUP ───────────────────────────────────────────
-function buildPopup(fix, name, dep, arr, flight) {
-  const col   = altColor(fix.altitude);
-  const airport = dep || '';
-  const possumLink = airport
-    ? `https://possumfix.com/beta.html?airport=${airport}&q=${name.toLowerCase()}&mode=both`
-    : `https://possumfix.com/beta.html?q=${name.toLowerCase()}&mode=both`;
+function prevLeg() { if (currentIndex > 0) { currentIndex--; loadCandidate(currentIndex); } }
+function nextLeg() { if (currentIndex < flightCandidates.length-1) { currentIndex++; loadCandidate(currentIndex); } }
 
-  return `
-    <div class="pp-fix-name">${name}</div>
-    <div class="pp-row">
-      <span class="pp-label">ALTITUDE</span>
-      <span class="pp-val">${fmtAlt(fix.altitude)}</span>
-    </div>
-    ${fix.speed ? `<div class="pp-row"><span class="pp-label">SPEED</span><span class="pp-val">${fix.speed} kt</span></div>` : ''}
-    ${fix.location ? `<div class="pp-row"><span class="pp-label">LOCATION</span><span class="pp-val" style="font-size:9px;text-align:right;max-width:120px">${fix.location}</span></div>` : ''}
-    <div class="pp-alt-badge" style="background:${col.color}22;border:1px solid ${col.color}44;color:${col.color}">
-      <span style="width:7px;height:7px;border-radius:50%;background:${col.color};display:inline-block"></span>
-      ${col.label}
-    </div>
-    <a class="pp-possum-link" href="${possumLink}" target="_blank">🐾 SEARCH IN POSSUM →</a>
-  `;
+function updateLegNav() {
+  const total = flightCandidates.length;
+  legLabel.textContent = total > 0 ? (currentIndex+1) + ' / ' + total : '—';
+  prevBtn.disabled = currentIndex === 0;
+  nextBtn.disabled = currentIndex >= total - 1;
 }
 
-// ── FIX LIST ──────────────────────────────────────────────
-function buildFixList(fixes, dep, arr, flight) {
-  const list = document.getElementById('fix-list');
-  list.innerHTML = '';
-
-  fixes.forEach((fix, idx) => {
-    const name = (fix.name || fix.id || '???').toUpperCase();
-    const col  = altColor(fix.altitude);
-    const isEndpoint = idx === 0 || idx === fixes.length - 1;
-
-    const item = document.createElement('div');
-    item.className = 'fix-item';
-    item.dataset.idx = idx;
-    item.innerHTML = `
-      <div class="alt-dot" style="background:${col.color};${isEndpoint ? 'width:10px;height:10px;border:1px solid rgba(255,255,255,0.4)' : ''}"></div>
-      <div>
-        <div class="fix-name" style="${isEndpoint ? 'color:#fff' : ''}">${name}${isEndpoint ? ` <span style="color:${col.color};font-size:8px">${idx === 0 ? '▲DEP' : '▼ARR'}</span>` : ''}</div>
-        <div class="fix-alt" style="color:${col.color}">${fmtAlt(fix.altitude)}</div>
-        ${fix.speed ? `<div class="fix-meta">${fix.speed} kt</div>` : ''}
-        ${fix.location ? `<div class="fix-meta" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fix.location}</div>` : ''}
-      </div>
-    `;
-    item.addEventListener('click', () => {
-      highlightFix(idx);
-      if (markers[idx]) {
-        map.panTo([fix.lat, fix.lon], { animate: true });
-        markers[idx].openPopup();
-      }
-    });
-    list.appendChild(item);
-  });
-}
-
-function highlightFix(idx) {
-  document.querySelectorAll('.fix-item').forEach(el => el.classList.remove('active'));
-  const item = document.querySelector(`.fix-item[data-idx="${idx}"]`);
-  if (item) {
-    item.classList.add('active');
-    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }
-}
-
-// ── PANEL TOGGLE ──────────────────────────────────────────
 function togglePanel() {
   panelOpen = !panelOpen;
   document.getElementById('side-panel').classList.toggle('open', panelOpen);
-  document.getElementById('panel-tab').classList.toggle('open', panelOpen);
+  const tab = document.getElementById('panel-tab');
+  tab.classList.toggle('open', panelOpen);
+  tab.textContent = panelOpen ? '<<' : '>>';
 }
 
-// ── LEG NAV ───────────────────────────────────────────────
-function prevLeg() {
-  if (!flightData) return;
-  currentLeg = Math.max(0, currentLeg - 1);
-  renderLeg(currentLeg);
-}
-function nextLeg() {
-  if (!flightData) return;
-  currentLeg = Math.min(flightData.legs.length - 1, currentLeg + 1);
-  renderLeg(currentLeg);
-}
+function toggleAd() { document.getElementById('bsco-ad').classList.toggle('minimized'); }
 
-// ── BSCo TOGGLE ───────────────────────────────────────────
-function toggleAd() {
-  document.getElementById('bsco-ad').classList.toggle('minimized');
-}
-
-// ── RESET VIEW ────────────────────────────────────────────
-function resetView() {
-  if (!flightData) {
-    map.setView([37, -95], 5);
-    return;
-  }
-  const leg = flightData.legs[currentLeg];
-  if (!leg) return;
-  const valid = (leg.fixes || []).filter(f => f.lat && f.lon);
-  if (valid.length > 0) {
-    map.fitBounds(L.latLngBounds(valid.map(f => [f.lat, f.lon])), { padding: [40, 40] });
-  }
-}
-
-// ── DEMO DATA (for testing without extension) ─────────────
-const DEMO_DATA = {
-  callsign: 'PDT5190',
-  legs: [{
-    departure: 'KDCA',
-    arrival:   'KDSM',
-    date:      '2026-02-03',
-    fixes: [
-      { id:'KDCA',  lat:38.852, lon:-77.037, altitude:0,     speed:0,   location:'Arlington, Virginia' },
-      { id:'REVGE', lat:38.98,  lon:-77.45,  altitude:1975,  speed:162, location:'Loudoun Co, Virginia' },
-      { id:'BEBLE', lat:39.12,  lon:-77.92,  altitude:3525,  speed:210, location:'Frederick Co, Maryland' },
-      { id:'RGIII', lat:39.45,  lon:-78.60,  altitude:8250,  speed:275, location:'Berkeley Co, West Virginia' },
-      { id:'MELOE', lat:39.88,  lon:-79.50,  altitude:12375, speed:310, location:'Fayette Co, Pennsylvania' },
-      { id:'RAMAY', lat:40.55,  lon:-81.20,  altitude:28650, speed:365, location:'Stark Co, Ohio' },
-      { id:'BENSH', lat:40.92,  lon:-83.10,  altitude:34000, speed:381, location:'Allen Co, Ohio' },
-      { id:'HACKS', lat:41.20,  lon:-85.50,  altitude:34000, speed:383, location:'DeKalb Co, Indiana' },
-      { id:'SUMET', lat:41.45,  lon:-87.80,  altitude:34000, speed:385, location:'Kankakee Co, Illinois' },
-      { id:'VLADY', lat:41.55,  lon:-89.90,  altitude:34000, speed:382, location:'Bureau Co, Illinois' },
-      { id:'MECAN', lat:41.48,  lon:-91.80,  altitude:28000, speed:355, location:'Iowa Co, Iowa' },
-      { id:'ROD',   lat:41.72,  lon:-92.90,  altitude:22000, speed:330, location:'Benton Co, Iowa' },
-      { id:'SJAAY', lat:41.60,  lon:-93.50,  altitude:16000, speed:290, location:'Polk Co, Iowa' },
-      { id:'WHETT', lat:41.54,  lon:-93.72,  altitude:10000, speed:255, location:'Polk Co, Iowa' },
-      { id:'KDSM',  lat:41.534, lon:-93.663, altitude:0,     speed:0,   location:'Des Moines, Iowa' },
-    ]
-  }]
-};
-
-// Auto-load demo if ?demo=1
-if (params.get('demo') === '1') {
-  document.getElementById('loading').classList.add('hidden');
-  document.getElementById('no-data').classList.add('hidden');
-  loadFlightData(DEMO_DATA);
+function setStatus(type, msg) { statusBar.className = type; statusText.textContent = msg; }
+function sanitizeId(s) { return s.replace(/[^a-zA-Z0-9]/g,'_'); }
+function displayIdent(ident) {
+  const words = {1:'one',2:'two',3:'three',4:'four',5:'five',6:'six',7:'seven',8:'eight',9:'nine'};
+  if (ident.includes('.')) { const [a,b]=ident.split('.'); return displayIdent(a)+' '+b.toLowerCase(); }
+  const m = ident.match(/^([A-Z]+)(\d)$/i);
+  if (m) return m[1].toLowerCase()+' '+(words[m[2]]||m[2]);
+  return ident.toLowerCase();
 }
 </script>
 </body>
