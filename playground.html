@@ -369,6 +369,29 @@
   @keyframes blink { 50% { opacity: 0; } }
   #loading.hidden { display: none; }
 
+  /* ── FIX LABELS (permanent tooltips) ────────────────────── */
+  .possum-label {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .possum-label::before { display: none !important; }
+  .possum-label .leaflet-tooltip-content {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 0.8px;
+    text-shadow:
+      -1px -1px 0 #000,
+       1px -1px 0 #000,
+      -1px  1px 0 #000,
+       1px  1px 0 #000,
+       0     2px 4px rgba(0,0,0,0.9);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
   /* Leaflet overrides */
   .leaflet-control-zoom a {
     background: var(--surface) !important;
@@ -603,6 +626,12 @@ function renderLeg(legIdx) {
         className: 'possum-popup',
         maxWidth: 240,
         minWidth: 180,
+      })
+      .bindTooltip(`<span style="color:${col}">${name}</span>`, {
+        permanent: true,
+        direction: 'top',
+        offset: [0, isEndpoint ? -10 : -7],
+        className: 'possum-label',
       });
 
     marker._fixIdx = idx;
