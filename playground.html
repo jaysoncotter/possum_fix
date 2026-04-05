@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐾 Possum Playground</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --bg:        #0a0a0c;
+    --surface:   #111116;
+    --border:    #1e1e28;
+    --accent:    #4af;
+    --text:      #c8c8d8;
+    --muted:     #555566;
+    --header-h:  38px;
+    --panel-w:   260px;
+
+    /* ROY G BIV altitude colors */
+    --alt-red:    #ff2222;
+    --alt-orange: #ff7700;
+    --alt-yellow: #ffe000;
+    --alt-green:  #22dd44;
+    --alt-blue:   #2288ff;
+    --alt-indigo: #4444dd;
+    --alt-violet: #9933cc;
+
+    /* BSCo brand */
+    --bsco-gold:  #d4a017;
+    --bsco-bg:    rgba(10,10,14,0.92);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', 'Consolas', monospace;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ─────────────────────────────────────────── */
+  #header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 12px;
+    z-index: 1000;
+    font-size: 12px;
+  }
+
+  #header .logo {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--accent);
+    letter-spacing: 2px;
+    white-space: nowrap;
+  }
+
+  #header .logo span { opacity: 0.5; font-weight: normal; }
+
+  #flight-info {
+    color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+
+  #flight-info b { color: var(--text); }
+
+  .header-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 10px;
+    padding: 3px 7px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .header-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── MAP ─────────────────────────────────────────────── */
+  #map {
+    position: fixed;
+    top: var(--header-h);
+    left: 0; right: 0; bottom: 0;
+    z-index: 1;
+  }
+
+  /* ── SLIDE PANEL ─────────────────────────────────────── */
+  #panel-tab {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    z-index: 900;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: none;
+    padding: 10px 5px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  #panel-tab:hover { color: var(--accent); border-color: var(--accent); }
+  #panel-tab.open { left: var(--panel-w); color: var(--accent); }
+
+  #side-panel {
+    position: fixed;
+    top: var(--header-h);
+    left: calc(-1 * var(--panel-w));
+    width: var(--panel-w);
+    bottom: 0;
+    background: rgba(10,10,14,0.96);
+    border-right: 1px solid var(--border);
+    z-index: 800;
+    transition: left 0.25s cubic-bezier(0.4,0,0.2,1);
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(8px);
+  }
+  #side-panel.open { left: 0; }
+
+  #panel-header {
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  #panel-header .route { color: var(--accent); font-size: 11px; font-weight: bold; }
+
+  #fix-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 4px 0;
+  }
+  #fix-list::-webkit-scrollbar { width: 3px; }
+  #fix-list::-webkit-scrollbar-track { background: transparent; }
+  #fix-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .fix-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 5px 12px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: background 0.1s;
+  }
+  .fix-item:hover { background: rgba(68,170,255,0.06); }
+  .fix-item.active {
+    background: rgba(68,170,255,0.10);
+    border-left-color: var(--accent);
+  }
+
+  .alt-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+    margin-right: 8px;
+  }
+
+  .fix-name {
+    font-size: 11px;
+    color: var(--text);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .fix-meta {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .fix-alt {
+    font-size: 10px;
+    margin-top: 1px;
+  }
+
+  #panel-leg-nav {
+    border-top: 1px solid var(--border);
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  #panel-leg-nav button {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 2px 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  #panel-leg-nav button:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── LEGEND ──────────────────────────────────────────── */
+  #legend {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--bsco-bg);
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    z-index: 500;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    min-width: 100px;
+    backdrop-filter: blur(8px);
+  }
+  #legend .legend-title {
+    color: var(--muted);
+    margin-bottom: 5px;
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  .legend-swatch {
+    width: 10px; height: 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── BSCo AD BLOCK ───────────────────────────────────── */
+  #bsco-ad {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: var(--bsco-bg);
+    border: 1px solid #2a2010;
+    z-index: 500;
+    width: 160px;
+    transition: all 0.2s;
+    backdrop-filter: blur(8px);
+    overflow: hidden;
+  }
+  #bsco-ad.minimized { width: 38px; }
+
+  #bsco-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #2a2010;
+    padding: 5px 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--bsco-gold);
+    text-align: left;
+  }
+  #bsco-toggle .bsco-icon { font-size: 14px; line-height: 1; }
+  #bsco-toggle .bsco-chevron { font-size: 9px; color: var(--muted); transition: transform 0.2s; }
+  #bsco-ad.minimized #bsco-toggle .bsco-chevron { transform: rotate(180deg); }
+
+  #bsco-body {
+    padding: 8px;
+    font-size: 9px;
+    color: var(--muted);
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  #bsco-ad.minimized #bsco-body { display: none; }
+
+  #bsco-body a {
+    display: block;
+    color: var(--bsco-gold);
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-top: 5px;
+    border: 1px solid #2a2010;
+    padding: 3px 6px;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  #bsco-body a:hover { border-color: var(--bsco-gold); background: rgba(212,160,23,0.08); }
+
+  /* ── POPUPS ──────────────────────────────────────────── */
+  .possum-popup .leaflet-popup-content-wrapper {
+    background: #0f0f14;
+    border: 1px solid #2a2a3a;
+    border-radius: 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    color: var(--text);
+  }
+  .possum-popup .leaflet-popup-tip { background: #0f0f14; }
+  .possum-popup .leaflet-popup-content { margin: 10px 14px; font-family: 'Courier New', monospace; font-size: 11px; }
+
+  .pp-fix-name { font-size: 13px; font-weight: bold; color: #4af; letter-spacing: 1px; margin-bottom: 6px; }
+  .pp-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 2px; }
+  .pp-label { color: var(--muted); font-size: 10px; }
+  .pp-val { color: var(--text); font-size: 10px; }
+  .pp-alt-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-top: 6px; padding: 2px 6px;
+    border-radius: 2px; font-size: 10px; font-weight: bold;
+  }
+  .pp-possum-link {
+    display: block; margin-top: 8px;
+    color: #4af; font-size: 10px; text-decoration: none;
+    border: 1px solid #1a3a4a; padding: 3px 6px; text-align: center;
+    transition: all 0.15s;
+  }
+  .pp-possum-link:hover { border-color: #4af; background: rgba(68,170,255,0.08); }
+
+  /* ── NO EXTENSION STATE ──────────────────────────────── */
+  #no-data {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 600;
+    text-align: center;
+    pointer-events: none;
+  }
+  #no-data .paw { font-size: 40px; opacity: 0.15; }
+  #no-data p { color: var(--muted); font-size: 12px; margin-top: 8px; line-height: 1.8; }
+  #no-data.hidden { display: none; }
+
+  /* Loading */
+  #loading {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 700;
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 2px;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  #loading.hidden { display: none; }
+
+  /* Leaflet overrides */
+  .leaflet-control-zoom a {
+    background: var(--surface) !important;
+    color: var(--muted) !important;
+    border-color: var(--border) !important;
+  }
+  .leaflet-control-zoom a:hover { color: var(--accent) !important; }
+  .leaflet-control-attribution {
+    background: rgba(10,10,14,0.7) !important;
+    color: var(--muted) !important;
+    font-size: 8px !important;
+  }
+  .leaflet-control-attribution a { color: var(--muted) !important; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="logo">🐾 <span>POSSUM</span> PLAYGROUND</div>
+  <div id="flight-info">no flight loaded</div>
+  <button class="header-btn" onclick="togglePanel()">≡ FIXES</button>
+  <button class="header-btn" onclick="resetView()">⊙ RESET</button>
+  <a href="https://possumfix.com" class="header-btn" style="text-decoration:none">← POSSUM</a>
+</div>
+
+<!-- PANEL TAB -->
+<div id="panel-tab" onclick="togglePanel()">FIXES</div>
+
+<!-- SIDE PANEL -->
+<div id="side-panel">
+  <div id="panel-header">
+    <span class="route" id="panel-route">—</span>
+    <span id="panel-fix-count">0 fixes</span>
+  </div>
+  <div id="fix-list"></div>
+  <div id="panel-leg-nav">
+    <button onclick="prevLeg()">◀</button>
+    <span id="leg-label">—</span>
+    <button onclick="nextLeg()">▶</button>
+  </div>
+</div>
+
+<!-- MAP -->
+<div id="map"></div>
+
+<!-- LEGEND -->
+<div id="legend">
+  <div class="legend-title">altitude</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-red)"></div> &lt; 3,000 ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-orange)"></div> 3–10k ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-yellow)"></div> 10–18k ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-green)"></div> 18–28k ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-blue)"></div> 28–35k ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-indigo)"></div> 35–40k ft</div>
+  <div class="legend-row"><div class="legend-swatch" style="background:var(--alt-violet)"></div> 40k+ ft</div>
+</div>
+
+<!-- BSCO AD -->
+<div id="bsco-ad">
+  <button id="bsco-toggle" onclick="toggleAd()">
+    <span class="bsco-icon">🍌</span>
+    <span style="font-size:9px;letter-spacing:1px;opacity:0.8;">BANANA SANDWICH CO.</span>
+    <span class="bsco-chevron">▲</span>
+  </button>
+  <div id="bsco-body">
+    <div style="color:#888;font-size:8px;margin-bottom:4px;">AURA COLLECTION</div>
+    <div style="color:#aaa;">Siamese aviator merch.</div>
+    <div style="color:#aaa;">Mugs · Desk mats · More</div>
+    <a href="https://bananasandwichco.biz" target="_blank">SHOP NOW →</a>
+  </div>
+</div>
+
+<!-- STATES -->
+<div id="loading">FETCHING ROUTE DATA...</div>
+<div id="no-data">
+  <div class="paw">🐾</div>
+  <p>No flight loaded.<br>Pass a URL like:<br><code style="color:#4af;font-size:10px;">playground.html?callsign=AAL328&date=2026-04-05</code><br><br>or open from <a href="https://possumfix.com/playing.html" style="color:#4af;">Playing Possum</a></p>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+const ALT_COLORS = [
+  { max: 3000,  color: '#ff2222', label: 'RED'    },
+  { max: 10000, color: '#ff7700', label: 'ORANGE' },
+  { max: 18000, color: '#ffe000', label: 'YELLOW' },
+  { max: 28000, color: '#22dd44', label: 'GREEN'  },
+  { max: 35000, color: '#2288ff', label: 'BLUE'   },
+  { max: 40000, color: '#4444dd', label: 'INDIGO' },
+  { max: Infinity, color: '#9933cc', label: 'VIOLET' },
+];
+
+function altColor(ft) {
+  const n = parseInt(ft) || 0;
+  return ALT_COLORS.find(r => n < r.max) || ALT_COLORS[ALT_COLORS.length - 1];
+}
+
+function fmtAlt(ft) {
+  const n = parseInt(ft) || 0;
+  if (n >= 18000) return 'FL' + Math.round(n / 100);
+  return n.toLocaleString() + ' ft';
+}
+
+// ── MAP INIT ──────────────────────────────────────────────
+const map = L.map('map', {
+  center: [37, -95],
+  zoom: 5,
+  zoomControl: true,
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap © CartoDB',
+  subdomains: 'abcd',
+  maxZoom: 19,
+}).addTo(map);
+
+// ── STATE ─────────────────────────────────────────────────
+let flightData   = null;   // legs array from extension
+let currentLeg   = 0;
+let markers      = [];
+let polylines    = [];
+let activeMarker = null;
+let panelOpen    = false;
+
+// ── URL PARAMS ────────────────────────────────────────────
+const params = new URLSearchParams(window.location.search);
+const callsign = params.get('callsign') || '';
+const date     = params.get('date')     || '';
+
+if (callsign) {
+  document.getElementById('flight-info').innerHTML =
+    `<b>${callsign}</b> · ${date || '—'} · waiting for extension data`;
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('no-data').classList.add('hidden');
+} else {
+  document.getElementById('loading').classList.add('hidden');
+}
+
+// ── EXTENSION MESSAGE LISTENER ────────────────────────────
+// Playing Possum extension posts flight data as window message
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'POSSUM_FLIGHT_DATA') {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('no-data').classList.add('hidden');
+    loadFlightData(e.data.payload);
+  }
+});
+
+// Also listen for direct data injection (for testing)
+window.loadDemo = function() {
+  loadFlightData(DEMO_DATA);
+};
+
+// ── LOAD FLIGHT DATA ──────────────────────────────────────
+function loadFlightData(data) {
+  flightData = data;
+  currentLeg = 0;
+  renderLeg(0);
+}
+
+function renderLeg(legIdx) {
+  // Clear existing layers
+  markers.forEach(m => map.removeLayer(m));
+  polylines.forEach(p => map.removeLayer(p));
+  markers = [];
+  polylines = [];
+
+  if (!flightData || !flightData.legs || !flightData.legs[legIdx]) return;
+
+  const leg    = flightData.legs[legIdx];
+  const fixes  = leg.fixes || [];
+  const flight = flightData.callsign || callsign;
+  const dep    = leg.departure || '???';
+  const arr    = leg.arrival   || '???';
+
+  // Header
+  document.getElementById('flight-info').innerHTML =
+    `<b>${flight}</b> · ${dep} → ${arr} · ${leg.date || date} · ${fixes.length} fixes`;
+  document.getElementById('panel-route').textContent = `${dep} → ${arr}`;
+  document.getElementById('panel-fix-count').textContent = `${fixes.length} fixes`;
+  document.getElementById('leg-label').textContent =
+    `${legIdx + 1} / ${flightData.legs.length}`;
+
+  // Build fix list in panel
+  buildFixList(fixes, dep, arr, flight);
+
+  if (fixes.length === 0) return;
+
+  // Draw polyline segments with altitude color
+  for (let i = 0; i < fixes.length - 1; i++) {
+    const a = fixes[i];
+    const b = fixes[i + 1];
+    if (!a.lat || !a.lon || !b.lat || !b.lon) continue;
+
+    const midAlt = ((parseInt(a.altitude) || 0) + (parseInt(b.altitude) || 0)) / 2;
+    const col    = altColor(midAlt).color;
+
+    const pl = L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
+      color: col,
+      weight: 3,
+      opacity: 0.85,
+    }).addTo(map);
+    polylines.push(pl);
+  }
+
+  // Draw fix markers
+  fixes.forEach((fix, idx) => {
+    if (!fix.lat || !fix.lon) return;
+
+    const col  = altColor(fix.altitude).color;
+    const name = (fix.name || fix.id || '???').toUpperCase();
+    const isEndpoint = idx === 0 || idx === fixes.length - 1;
+
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width:${isEndpoint ? 14 : 9}px;
+        height:${isEndpoint ? 14 : 9}px;
+        background:${col};
+        border-radius:50%;
+        border:${isEndpoint ? '2px solid #fff' : '1px solid rgba(255,255,255,0.3)'};
+        box-shadow:0 0 ${isEndpoint ? 8 : 4}px ${col};
+        cursor:pointer;
+      "></div>`,
+      iconSize: [isEndpoint ? 14 : 9, isEndpoint ? 14 : 9],
+      iconAnchor: [isEndpoint ? 7 : 4.5, isEndpoint ? 7 : 4.5],
+    });
+
+    const marker = L.marker([fix.lat, fix.lon], { icon })
+      .addTo(map)
+      .bindPopup(buildPopup(fix, name, dep, arr, flight), {
+        className: 'possum-popup',
+        maxWidth: 240,
+        minWidth: 180,
+      });
+
+    marker._fixIdx = idx;
+    marker.on('click', () => highlightFix(idx));
+    markers.push(marker);
+  });
+
+  // Fit map to route
+  const validFixes = fixes.filter(f => f.lat && f.lon);
+  if (validFixes.length > 0) {
+    const bounds = L.latLngBounds(validFixes.map(f => [f.lat, f.lon]));
+    map.fitBounds(bounds, { padding: [40, 40] });
+  }
+}
+
+// ── BUILD POPUP ───────────────────────────────────────────
+function buildPopup(fix, name, dep, arr, flight) {
+  const col   = altColor(fix.altitude);
+  const airport = dep || '';
+  const possumLink = airport
+    ? `https://possumfix.com/beta.html?airport=${airport}&q=${name.toLowerCase()}&mode=both`
+    : `https://possumfix.com/beta.html?q=${name.toLowerCase()}&mode=both`;
+
+  return `
+    <div class="pp-fix-name">${name}</div>
+    <div class="pp-row">
+      <span class="pp-label">ALTITUDE</span>
+      <span class="pp-val">${fmtAlt(fix.altitude)}</span>
+    </div>
+    ${fix.speed ? `<div class="pp-row"><span class="pp-label">SPEED</span><span class="pp-val">${fix.speed} kt</span></div>` : ''}
+    ${fix.location ? `<div class="pp-row"><span class="pp-label">LOCATION</span><span class="pp-val" style="font-size:9px;text-align:right;max-width:120px">${fix.location}</span></div>` : ''}
+    <div class="pp-alt-badge" style="background:${col.color}22;border:1px solid ${col.color}44;color:${col.color}">
+      <span style="width:7px;height:7px;border-radius:50%;background:${col.color};display:inline-block"></span>
+      ${col.label}
+    </div>
+    <a class="pp-possum-link" href="${possumLink}" target="_blank">🐾 SEARCH IN POSSUM →</a>
+  `;
+}
+
+// ── FIX LIST ──────────────────────────────────────────────
+function buildFixList(fixes, dep, arr, flight) {
+  const list = document.getElementById('fix-list');
+  list.innerHTML = '';
+
+  fixes.forEach((fix, idx) => {
+    const name = (fix.name || fix.id || '???').toUpperCase();
+    const col  = altColor(fix.altitude);
+    const isEndpoint = idx === 0 || idx === fixes.length - 1;
+
+    const item = document.createElement('div');
+    item.className = 'fix-item';
+    item.dataset.idx = idx;
+    item.innerHTML = `
+      <div class="alt-dot" style="background:${col.color};${isEndpoint ? 'width:10px;height:10px;border:1px solid rgba(255,255,255,0.4)' : ''}"></div>
+      <div>
+        <div class="fix-name" style="${isEndpoint ? 'color:#fff' : ''}">${name}${isEndpoint ? ` <span style="color:${col.color};font-size:8px">${idx === 0 ? '▲DEP' : '▼ARR'}</span>` : ''}</div>
+        <div class="fix-alt" style="color:${col.color}">${fmtAlt(fix.altitude)}</div>
+        ${fix.speed ? `<div class="fix-meta">${fix.speed} kt</div>` : ''}
+        ${fix.location ? `<div class="fix-meta" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fix.location}</div>` : ''}
+      </div>
+    `;
+    item.addEventListener('click', () => {
+      highlightFix(idx);
+      if (markers[idx]) {
+        map.panTo([fix.lat, fix.lon], { animate: true });
+        markers[idx].openPopup();
+      }
+    });
+    list.appendChild(item);
+  });
+}
+
+function highlightFix(idx) {
+  document.querySelectorAll('.fix-item').forEach(el => el.classList.remove('active'));
+  const item = document.querySelector(`.fix-item[data-idx="${idx}"]`);
+  if (item) {
+    item.classList.add('active');
+    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+// ── PANEL TOGGLE ──────────────────────────────────────────
+function togglePanel() {
+  panelOpen = !panelOpen;
+  document.getElementById('side-panel').classList.toggle('open', panelOpen);
+  document.getElementById('panel-tab').classList.toggle('open', panelOpen);
+}
+
+// ── LEG NAV ───────────────────────────────────────────────
+function prevLeg() {
+  if (!flightData) return;
+  currentLeg = Math.max(0, currentLeg - 1);
+  renderLeg(currentLeg);
+}
+function nextLeg() {
+  if (!flightData) return;
+  currentLeg = Math.min(flightData.legs.length - 1, currentLeg + 1);
+  renderLeg(currentLeg);
+}
+
+// ── BSCo TOGGLE ───────────────────────────────────────────
+function toggleAd() {
+  document.getElementById('bsco-ad').classList.toggle('minimized');
+}
+
+// ── RESET VIEW ────────────────────────────────────────────
+function resetView() {
+  if (!flightData) {
+    map.setView([37, -95], 5);
+    return;
+  }
+  const leg = flightData.legs[currentLeg];
+  if (!leg) return;
+  const valid = (leg.fixes || []).filter(f => f.lat && f.lon);
+  if (valid.length > 0) {
+    map.fitBounds(L.latLngBounds(valid.map(f => [f.lat, f.lon])), { padding: [40, 40] });
+  }
+}
+
+// ── DEMO DATA (for testing without extension) ─────────────
+const DEMO_DATA = {
+  callsign: 'PDT5190',
+  legs: [{
+    departure: 'KDCA',
+    arrival:   'KDSM',
+    date:      '2026-02-03',
+    fixes: [
+      { id:'KDCA',  lat:38.852, lon:-77.037, altitude:0,     speed:0,   location:'Arlington, Virginia' },
+      { id:'REVGE', lat:38.98,  lon:-77.45,  altitude:1975,  speed:162, location:'Loudoun Co, Virginia' },
+      { id:'BEBLE', lat:39.12,  lon:-77.92,  altitude:3525,  speed:210, location:'Frederick Co, Maryland' },
+      { id:'RGIII', lat:39.45,  lon:-78.60,  altitude:8250,  speed:275, location:'Berkeley Co, West Virginia' },
+      { id:'MELOE', lat:39.88,  lon:-79.50,  altitude:12375, speed:310, location:'Fayette Co, Pennsylvania' },
+      { id:'RAMAY', lat:40.55,  lon:-81.20,  altitude:28650, speed:365, location:'Stark Co, Ohio' },
+      { id:'BENSH', lat:40.92,  lon:-83.10,  altitude:34000, speed:381, location:'Allen Co, Ohio' },
+      { id:'HACKS', lat:41.20,  lon:-85.50,  altitude:34000, speed:383, location:'DeKalb Co, Indiana' },
+      { id:'SUMET', lat:41.45,  lon:-87.80,  altitude:34000, speed:385, location:'Kankakee Co, Illinois' },
+      { id:'VLADY', lat:41.55,  lon:-89.90,  altitude:34000, speed:382, location:'Bureau Co, Illinois' },
+      { id:'MECAN', lat:41.48,  lon:-91.80,  altitude:28000, speed:355, location:'Iowa Co, Iowa' },
+      { id:'ROD',   lat:41.72,  lon:-92.90,  altitude:22000, speed:330, location:'Benton Co, Iowa' },
+      { id:'SJAAY', lat:41.60,  lon:-93.50,  altitude:16000, speed:290, location:'Polk Co, Iowa' },
+      { id:'WHETT', lat:41.54,  lon:-93.72,  altitude:10000, speed:255, location:'Polk Co, Iowa' },
+      { id:'KDSM',  lat:41.534, lon:-93.663, altitude:0,     speed:0,   location:'Des Moines, Iowa' },
+    ]
+  }]
+};
+
+// Auto-load demo if ?demo=1
+if (params.get('demo') === '1') {
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('no-data').classList.add('hidden');
+  loadFlightData(DEMO_DATA);
+}
+</script>
+</body>
+</html>
