@@ -43,12 +43,37 @@
   .page-title { font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
   #flight-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #flight-meta span { color: var(--blue); }
+
+  /* ── Callsign input in header ── */
+  #callsign-form { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  #callsign-input {
+    font-family: var(--mono); font-size: 13px; font-weight: bold;
+    color: var(--blue); background: var(--bg);
+    border: 1px solid var(--border2); border-radius: 3px;
+    padding: 3px 7px; width: 110px; outline: none; letter-spacing: 0.05em; text-transform: uppercase;
+    transition: border-color 0.15s;
+  }
+  #callsign-input:focus { border-color: var(--blue); }
+  #callsign-input::placeholder { color: var(--muted); font-weight: normal; letter-spacing: 0; }
+  #callsign-go {
+    background: var(--border2); border: 1px solid var(--border2);
+    color: var(--muted); font-family: var(--mono); font-size: 10px;
+    padding: 4px 9px; cursor: pointer; transition: all 0.15s; white-space: nowrap; border-radius: 3px;
+  }
+  #callsign-go:hover { border-color: var(--accent); color: var(--accent); }
+
   #open-playing-btn {
     flex-shrink: 0; background: var(--border2); border: 1px solid var(--border2);
     color: var(--muted); font-family: var(--mono); font-size: 10px;
     padding: 4px 9px; cursor: pointer; transition: all 0.15s; white-space: nowrap;
   }
   #open-playing-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Date display in status bar — big & bright ── */
+  #flight-date-display {
+    margin-left: auto; font-family: var(--mono); font-size: 13px; font-weight: bold;
+    color: #c8d8f0; letter-spacing: 0.05em; white-space: nowrap; flex-shrink: 0;
+  }
 
   /* ── Status bar ── */
   #status-bar {
@@ -257,13 +282,17 @@
     <span class="paw">🐾</span><span class="word">Possum</span>
   </a>
   <div class="page-title">Playground</div>
-  <div id="flight-meta">—</div>
+  <div id="callsign-form">
+    <input id="callsign-input" type="text" maxlength="10" placeholder="AAL328 / JBU248…" autocomplete="off" spellcheck="false">
+    <button id="callsign-go" onclick="goCallsign()">GO →</button>
+  </div>
   <button id="open-playing-btn" onclick="openPlayingWindow()">Playing Possum ↗</button>
 </div>
 
 <div id="status-bar" class="waiting">
   <div class="dot"></div>
-  <span id="status-text">Waiting for Playing Possum extension...</span>
+  <span id="status-text">Enter a callsign above or use ?callsign= in the URL</span>
+  <span id="flight-date-display"></span>
 </div>
 
 <div id="map">
@@ -328,8 +357,8 @@
 
 <script>
 const params   = new URLSearchParams(window.location.search);
-const CALLSIGN = (params.get('callsign') || '').toUpperCase().trim();
-const DATE_STR = (params.get('date') || '').trim();
+let CALLSIGN = (params.get('callsign') || '').toUpperCase().trim();
+let DATE_STR = (params.get('date') || '').trim();
 
 let flightCandidates = [], currentIndex = 0, lastTokens = [];
 let extReady = false, fetchTimeout = null;
@@ -387,24 +416,54 @@ const showTrack  = document.getElementById('show-track');
 const showLoc    = document.getElementById('show-loc');
 const disclaimer = document.getElementById('disclaimer');
 
+// ── Callsign input wiring ──
+const callsignInput = document.getElementById('callsign-input');
+const flightDateDisplay = document.getElementById('flight-date-display');
+
+// Pre-fill input if callsign in URL
+if (CALLSIGN) callsignInput.value = CALLSIGN;
+
+callsignInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') goCallsign(); });
+
+function goCallsign() {
+  const val = callsignInput.value.toUpperCase().trim();
+  if (!val) return;
+  CALLSIGN = val;
+  // Update URL without reload so sharing/refresh works
+  const newUrl = new URL(window.location.href);
+  newUrl.searchParams.set('callsign', CALLSIGN);
+  if (DATE_STR) newUrl.searchParams.set('date', DATE_STR);
+  window.history.replaceState({}, '', newUrl.toString());
+  // Reset state and kick off
+  flightCandidates = []; currentIndex = 0; lastTokens = [];
+  mapMarkers = []; mapLines = []; mapLabels = [];
+  flightDateDisplay.textContent = '';
+  noExt.classList.remove('visible');
+  fixList.innerHTML = '';
+  clearMap();
+  waitForExtension();
+}
+
 // Boot
 if (!CALLSIGN) {
-  setStatus('error', 'No callsign in URL — try playground.html?callsign=AAL328');
+  setStatus('waiting', 'Enter a callsign above, or use ?callsign=AAL328 in the URL');
 } else {
-  flightMeta.innerHTML = `<span>${CALLSIGN}</span>${DATE_STR ? ' &nbsp;&middot;&nbsp; ' + DATE_STR : ''}`;
   waitForExtension();
 }
 
 function waitForExtension() {
+  extReady = false;
+  clearTimeout(fetchTimeout);
   setStatus('waiting', 'Waiting for Playing Possum extension...');
   window.addEventListener('possum:ready', () => {
     extReady = true;
     clearTimeout(fetchTimeout);
+    callsignInput.value = CALLSIGN;
     setStatus('loading', 'Fetching flight history for ' + CALLSIGN + '...');
     requestFetch();
   }, { once: true });
   fetchTimeout = setTimeout(() => {
-    if (!extReady) { noExt.classList.add('visible'); setStatus('error', 'Playing Possum extension not detected.'); }
+    if (!extReady) { noExt.classList.add('visible'); setStatus('error', 'Playing Possum extension not detected — install the extension and try again.'); }
   }, 4000);
 }
 
@@ -438,8 +497,8 @@ function loadCandidate(idx) {
   const c = flightCandidates[idx];
   if (!c) return;
   clearMap();
-  setStatus('loading', 'Loading route — ' + c.dateLabel + ' ' + c.timeLabel + '...');
-  flightMeta.innerHTML = `<span>${CALLSIGN}</span> &nbsp;&middot;&nbsp; ${c.dateLabel} ${c.timeLabel} &nbsp;&middot;&nbsp; ${c.orig}&rarr;${c.dest}`;
+  setStatus('loading', 'Loading route...');
+  flightDateDisplay.textContent = c.dateLabel + ' ' + c.timeLabel + '  ' + c.orig + '→' + c.dest;
   panelRoute.textContent = c.orig + ' → ' + c.dest;
   window.dispatchEvent(new CustomEvent('possum:load', { detail: { candidate: c, callsign: CALLSIGN } }));
 }
@@ -449,7 +508,8 @@ window.addEventListener('possum:tokens', (e) => {
   if (error) { setStatus('error', 'Load error: ' + error); return; }
   lastTokens = tokens || [];
   const c = flightCandidates[currentIndex];
-  setStatus('ok', lastTokens.length + ' fixes loaded' + (c ? ' — ' + c.dateLabel : ''));
+  setStatus('ok', lastTokens.length + ' fixes loaded — ' + CALLSIGN);
+  if (c) flightDateDisplay.textContent = c.dateLabel + ' ' + c.timeLabel + '  ' + c.orig + '→' + c.dest;
   fixCount.textContent = lastTokens.length + ' fixes';
   updateLegNav();
   renderPanel(lastTokens);
