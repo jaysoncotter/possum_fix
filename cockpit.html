@@ -925,24 +925,30 @@ function renderMap(tokens, candidate) {
     mapLines.push(line);
   }
   
-  // White gap filler line (always draw from second-to-last to last if both exist)
-  const lastFix = tokens[tokens.length - 2];
+  // White gap filler line - find last fix with coordinates, then draw to destination
   const destAirport = tokens[tokens.length - 1];
   
+  // Find the last token with valid coordinates (working backwards from second-to-last)
+  let lastFixWithCoords = null;
+  for (let i = tokens.length - 2; i >= 0; i--) {
+    if (tokens[i].lat && tokens[i].lon && !isNaN(tokens[i].lat) && !isNaN(tokens[i].lon)) {
+      lastFixWithCoords = tokens[i];
+      break;
+    }
+  }
+  
   console.log('[Cockpit] White line check:', {
-    hasLastFix: !!lastFix,
-    hasDestAirport: !!destAirport,
-    lastFixType: lastFix?.type,
-    destType: destAirport?.type,
-    lastFixIdent: lastFix?.ident,
-    destIdent: destAirport?.ident
+    totalFixes: tokens.length,
+    destIdent: destAirport?.ident,
+    destHasCoords: !!(destAirport?.lat && destAirport?.lon),
+    lastFixIdent: lastFixWithCoords?.ident,
+    lastFixHasCoords: !!lastFixWithCoords
   });
   
-  if (lastFix && destAirport && 
-      lastFix.lat && lastFix.lon && destAirport.lat && destAirport.lon) {
-    console.log('[Cockpit] Drawing white gap-filler line');
+  if (lastFixWithCoords && destAirport && destAirport.lat && destAirport.lon) {
+    console.log('[Cockpit] Drawing white gap-filler line from', lastFixWithCoords.ident, 'to', destAirport.ident);
     const gapLine = L.polyline(
-      [[lastFix.lat, lastFix.lon], [destAirport.lat, destAirport.lon]],
+      [[lastFixWithCoords.lat, lastFixWithCoords.lon], [destAirport.lat, destAirport.lon]],
       { color: '#ffffff', weight: 3, opacity: 0.88 }
     ).addTo(map);
     
