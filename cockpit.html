@@ -248,26 +248,26 @@
     border-left: 3px solid transparent;
     transition: background 0.1s;
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 12px;
   }
   .flight-item:hover { background: rgba(255,255,255,0.05); }
   .flight-item.active { background: rgba(232,93,38,0.08); border-left-color: var(--accent); }
-  .flight-callsign { color: var(--blue); font-weight: bold; }
-  .flight-route { color: var(--text); margin-top: 2px; }
-  .flight-date { color: var(--muted); font-size: 9px; margin-top: 2px; }
+  .flight-callsign { color: var(--blue); font-weight: bold; font-size: 13px; }
+  .flight-route { color: var(--text); margin-top: 2px; font-size: 12px; }
+  .flight-date { color: var(--muted); font-size: 11px; margin-top: 2px; }
 
   #route-header {
     padding: 8px 12px;
     border-bottom: 1px solid var(--border);
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 13px;
     color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
   }
-  #route-title { color: var(--accent); font-size: 11px; font-weight: bold; }
+  #route-title { color: var(--accent); font-size: 14px; font-weight: bold; }
 
   #route-options {
     padding: 5px 12px;
@@ -312,10 +312,10 @@
   .fix-item.type-navaid { border-left-color: var(--green); }
 
   .alt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
-  .fix-ident { font-family: var(--mono); font-size: 11px; font-weight: 600; color: #c8d0dc; }
-  .fix-ident.airport { color: var(--blue); font-size: 12px; }
+  .fix-ident { font-family: var(--mono); font-size: 14px; font-weight: 600; color: #c8d0dc; }
+  .fix-ident.airport { color: var(--blue); font-size: 15px; }
   .fix-ident.navaid { color: var(--green); }
-  .fix-track { font-family: var(--mono); font-size: 10px; color: var(--green); margin-top: 1px; }
+  .fix-track { font-family: var(--mono); font-size: 13px; color: var(--green); margin-top: 1px; }
 
   #leg-nav {
     border-top: 1px solid var(--border);
@@ -324,7 +324,7 @@
     align-items: center;
     justify-content: space-between;
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 13px;
     color: var(--muted);
     flex-shrink: 0;
   }
@@ -333,7 +333,7 @@
     border: 1px solid var(--border2);
     color: var(--text);
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 13px;
     padding: 2px 8px;
     cursor: pointer;
     transition: all 0.15s;
@@ -925,12 +925,22 @@ function renderMap(tokens, candidate) {
     mapLines.push(line);
   }
   
-  // White gap filler line
+  // White gap filler line (always draw from second-to-last to last if both exist)
   const lastFix = tokens[tokens.length - 2];
   const destAirport = tokens[tokens.length - 1];
+  
+  console.log('[Cockpit] White line check:', {
+    hasLastFix: !!lastFix,
+    hasDestAirport: !!destAirport,
+    lastFixType: lastFix?.type,
+    destType: destAirport?.type,
+    lastFixIdent: lastFix?.ident,
+    destIdent: destAirport?.ident
+  });
+  
   if (lastFix && destAirport && 
-      lastFix.lat && lastFix.lon && destAirport.lat && destAirport.lon &&
-      lastFix.type !== 'airport' && destAirport.type === 'airport') {
+      lastFix.lat && lastFix.lon && destAirport.lat && destAirport.lon) {
+    console.log('[Cockpit] Drawing white gap-filler line');
     const gapLine = L.polyline(
       [[lastFix.lat, lastFix.lon], [destAirport.lat, destAirport.lon]],
       { color: '#ffffff', weight: 3, opacity: 0.88 }
