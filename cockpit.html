@@ -34,7 +34,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; overflow: hidden; }
 
-  /* ── Header (Input Only) ── */
+  /* ── Header ── */
   #header {
     position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
     background: var(--surface); border-bottom: 1px solid var(--border);
@@ -91,7 +91,7 @@
     left: 0; right: 0; bottom: 0; z-index: 1;
   }
 
-  /* ── LEFT SEARCH PANEL (slides from left) ── */
+  /* ── LEFT SEARCH PANEL ── */
   #search-panel-tab {
     position: fixed; top: 50%; left: 0;
     transform: translateY(-50%);
@@ -165,7 +165,6 @@
   }
   .action-btn:hover { filter: brightness(1.15); }
 
-  /* ── Search Results ── */
   #search-results {
     flex: 1;
     overflow-y: auto;
@@ -194,7 +193,7 @@
   .search-result-score { color: var(--green); min-width: 25px; }
   .search-result-type { color: var(--muted); font-size: 9px; }
 
-  /* ── RIGHT ROUTE PANEL (slides from right) ── */
+  /* ── RIGHT ROUTE PANEL ── */
   #route-panel-tab {
     position: fixed; top: 50%; right: 0;
     transform: translateY(-50%);
@@ -223,7 +222,6 @@
   }
   #route-panel.open { right: 0; }
 
-  /* ── Flight List ── */
   #flights-section {
     border-bottom: 1px solid var(--border);
     max-height: 180px;
@@ -258,7 +256,6 @@
   .flight-route { color: var(--text); margin-top: 2px; }
   .flight-date { color: var(--muted); font-size: 9px; margin-top: 2px; }
 
-  /* ── Route Header ── */
   #route-header {
     padding: 8px 12px;
     border-bottom: 1px solid var(--border);
@@ -272,7 +269,6 @@
   }
   #route-title { color: var(--accent); font-size: 11px; font-weight: bold; }
 
-  /* ── Route Options ── */
   #route-options {
     padding: 5px 12px;
     border-bottom: 1px solid var(--border);
@@ -292,7 +288,6 @@
   }
   .toggle-label input { accent-color: var(--accent); cursor: pointer; }
 
-  /* ── Fix List ── */
   #fix-list {
     overflow-y: auto;
     flex: 1;
@@ -322,7 +317,6 @@
   .fix-ident.navaid { color: var(--green); }
   .fix-track { font-family: var(--mono); font-size: 10px; color: var(--green); margin-top: 1px; }
 
-  /* ── Leg Navigation ── */
   #leg-nav {
     border-top: 1px solid var(--border);
     padding: 6px 12px;
@@ -348,7 +342,7 @@
   #leg-nav button:disabled { opacity: 0.3; cursor: default; }
   #leg-nav button:disabled:hover { background: var(--border2); border-color: var(--border2); color: var(--text); }
 
-  /* ── BSCo Aura Ad (BOTTOM-LEFT) ── */
+  /* ── BSCo Ad ── */
   #bsco-ad {
     position: fixed;
     bottom: 12px;
@@ -395,7 +389,6 @@
   .leaflet-control-attribution { background: rgba(10,12,15,0.75) !important; color: var(--muted) !important; font-size: 8px !important; }
   .leaflet-control-attribution a { color: var(--muted) !important; }
 
-  /* ── Map fix labels ── */
   .fix-map-label {
     background: transparent;
     border: none;
@@ -409,7 +402,6 @@
   }
   .fix-map-label.airport-lbl { color: rgba(74,144,217,0.95); font-size: 11px; font-weight: bold; }
 
-  /* ── Leaflet popup styles ── */
   .possum-popup .leaflet-popup-content-wrapper {
     background: #0d0f14;
     border: 1px solid #2a2a3a;
@@ -432,7 +424,6 @@
 </head>
 <body>
 
-<!-- Header (Input Only) -->
 <div id="header">
   <a href="https://possumfix.com" class="logo-link">
     <span class="paw">🐾</span>
@@ -458,19 +449,15 @@
   <button id="go-btn" onclick="searchFlights()">GO →</button>
 </div>
 
-<!-- Status Bar -->
 <div id="status-bar" class="waiting">
   <div class="dot"></div>
   <span id="status-text">Ready for flight search</span>
 </div>
 
-<!-- Map -->
 <div id="map"></div>
 
-<!-- LEFT SEARCH PANEL TAB -->
 <div id="search-panel-tab" onclick="toggleSearchPanel()">&lt;&lt;</div>
 
-<!-- LEFT SEARCH PANEL -->
 <div id="search-panel">
   <div class="search-section">
     <div class="section-title">Phonetic Fix Search</div>
@@ -523,13 +510,9 @@
   </div>
 </div>
 
-<!-- RIGHT ROUTE PANEL TAB -->
 <div id="route-panel-tab" class="open" onclick="toggleRoutePanel()">&gt;&gt;</div>
 
-<!-- RIGHT ROUTE PANEL -->
 <div id="route-panel" class="open">
-  
-  <!-- Flights List -->
   <div id="flights-section">
     <div class="flights-header">Flights (±10 days)</div>
     <div id="flights-list">
@@ -539,13 +522,11 @@
     </div>
   </div>
 
-  <!-- Route Header -->
   <div id="route-header">
     <span id="route-title">—</span>
     <span id="fix-count">0 fixes</span>
   </div>
   
-  <!-- Route Options -->
   <div id="route-options">
     <label class="toggle-label">
       <input type="checkbox" id="show-track" checked>
@@ -557,10 +538,8 @@
     </label>
   </div>
   
-  <!-- Fix List -->
   <div id="fix-list"></div>
   
-  <!-- Leg Navigation -->
   <div id="leg-nav">
     <button id="prev-btn" disabled onclick="prevFlight()">◀</button>
     <span id="leg-label">—</span>
@@ -568,7 +547,6 @@
   </div>
 </div>
 
-<!-- BSCo Aura Ad -->
 <div id="bsco-ad" class="minimized">
   <div id="ad-toggle" onclick="toggleAd()"></div>
   <div id="ad-content">
@@ -590,6 +568,8 @@ let statusText = document.getElementById('status-text');
 let mapMarkers = [], mapLines = [], mapLabels = [], searchMarkers = [];
 let flightCandidates = [], currentFlightIndex = 0, lastTokens = [];
 let allSearchResults = [], activeSearchMarker = null;
+let CALLSIGN = '', DATE_STR = '';
+let extReady = false, fetchTimeout = null;
 
 // ── Initialize map ──
 map = L.map('map', { zoomControl: true }).setView([39.8283, -98.5795], 5);
@@ -598,37 +578,6 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   subdomains: 'abcd',
   maxZoom: 19
 }).addTo(map);
-
-// ── Route Templates (varied by flight) ──
-const routeTemplates = {
-  'KDFW_KLAX': [
-    { ident: 'KDFW', lat: 32.8998, lon: -97.0403, type: 'airport', actualAlt: '0' },
-    { ident: 'WITTE', lat: 33.021, lon: -97.154, actualAlt: '5000', actualSpeed: '240' },
-    { ident: 'VESLO', lat: 33.198, lon: -97.432, actualAlt: '9700', actualSpeed: '258' },
-    { ident: 'SWEET', lat: 33.512, lon: -97.891, actualAlt: '17800', actualSpeed: '292' },
-    { ident: 'MALIBU', lat: 34.015, lon: -99.124, actualAlt: '35000', actualSpeed: '490' },
-    { ident: 'GRACO', lat: 34.456, lon: -102.567, actualAlt: '37000', actualSpeed: '492' },
-    { ident: 'KLAX', lat: 33.9425, lon: -118.4081, type: 'airport', actualAlt: '0' }
-  ],
-  'KDFW_KMSY': [
-    { ident: 'KDFW', lat: 32.8998, lon: -97.0403, type: 'airport', actualAlt: '0' },
-    { ident: 'FINGR', lat: 32.645, lon: -96.512, actualAlt: '4500', actualSpeed: '235' },
-    { ident: 'NAVYS', lat: 32.234, lon: -95.891, actualAlt: '11000', actualSpeed: '275' },
-    { ident: 'TYLER', lat: 31.912, lon: -94.567, actualAlt: '23000', actualSpeed: '385' },
-    { ident: 'SHRVR', lat: 31.456, lon: -93.234, actualAlt: '33000', actualSpeed: '475' },
-    { ident: 'BATON', lat: 30.512, lon: -91.678, actualAlt: '36000', actualSpeed: '485' },
-    { ident: 'KMSY', lat: 29.9934, lon: -90.2581, type: 'airport', actualAlt: '0' }
-  ],
-  'KDFW_KORD': [
-    { ident: 'KDFW', lat: 32.8998, lon: -97.0403, type: 'airport', actualAlt: '0' },
-    { ident: 'BLECO', lat: 33.234, lon: -96.789, actualAlt: '6000', actualSpeed: '245' },
-    { ident: 'TULSA', lat: 35.912, lon: -95.456, actualAlt: '18000', actualSpeed: '320' },
-    { ident: 'JOPLN', lat: 37.123, lon: -94.234, actualAlt: '30000', actualSpeed: '455' },
-    { ident: 'KANSZ', lat: 39.456, lon: -93.678, actualAlt: '37000', actualSpeed: '490' },
-    { ident: 'JOLIET', lat: 41.234, lon: -88.912, actualAlt: '38000', actualSpeed: '492' },
-    { ident: 'KORD', lat: 41.9742, lon: -87.9073, type: 'airport', actualAlt: '0' }
-  ]
-};
 
 // ── URL Parameter Parsing ──
 function parseURLParams() {
@@ -651,7 +600,7 @@ function parseURLParams() {
   }
 }
 
-// ── ALTITUDE COLOR SYSTEM (7-BAND WITH FL/FEET FIX) ──
+// ── ALTITUDE COLOR SYSTEM ──
 function parseAltitude(alt) {
   if (!alt) return 0;
   const str = alt.toString().toUpperCase();
@@ -673,59 +622,86 @@ function getAltitudeColor(alt) {
   return '#8b6fd4';
 }
 
-// ── Search Flights ──
+// ── Playing Possum Extension Integration ──
 function searchFlights() {
   const operator = document.getElementById('operator-input').value.trim().toUpperCase();
   const number = document.getElementById('number-input').value.trim();
+  const dateInput = document.getElementById('date-input').value;
   
   if (!operator || !number) {
     setStatus('error', 'Enter operator and number');
     return;
   }
   
-  const callsign = operator + number;
-  setStatus('loading', `Searching FlightAware for ${callsign}...`);
+  CALLSIGN = operator + number;
+  DATE_STR = dateInput ? dateInput.replace(/-/g, '') : ''; // Convert YYYY-MM-DD to YYYYMMDD
   
-  setTimeout(() => {
-    const date = new Date(document.getElementById('date-input').value);
-    const flights = [];
-    
-    // Generate 10 flights with varied routes
-    for (let i = 0; i < 10; i++) {
-      const flightDate = new Date(date);
-      flightDate.setDate(flightDate.getDate() + (i - 5));
-      
-      // Vary routes: early flights to MSY, middle to LAX, late to ORD
-      let route, routeKey;
-      if (i < 3) {
-        route = 'KDFW → KMSY';
-        routeKey = 'KDFW_KMSY';
-      } else if (i < 7) {
-        route = 'KDFW → KLAX';
-        routeKey = 'KDFW_KLAX';
-      } else {
-        route = 'KDFW → KORD';
-        routeKey = 'KDFW_KORD';
-      }
-      
-      flights.push({
-        callsign: callsign,
-        route: route,
-        routeKey: routeKey,
-        date: flightDate,
-        dateStr: flightDate.toISOString().split('T')[0]
-      });
-    }
-    
-    flights.sort((a, b) => b.date - a.date);
-    
-    flightCandidates = flights;
-    renderFlightsList();
-    loadFlight(0);
-    
-    setStatus('ok', `Found ${flights.length} flights for ${callsign}`);
-  }, 1000);
+  waitForExtension();
 }
+
+function waitForExtension() {
+  extReady = false;
+  clearTimeout(fetchTimeout);
+  setStatus('waiting', 'Waiting for Playing Possum extension...');
+  
+  window.addEventListener('possum:ready', () => {
+    extReady = true;
+    clearTimeout(fetchTimeout);
+    setStatus('loading', 'Fetching flight history for ' + CALLSIGN + '...');
+    requestFetch();
+  }, { once: true });
+  
+  fetchTimeout = setTimeout(() => {
+    if (!extReady) {
+      setStatus('error', 'Playing Possum extension not detected');
+    }
+  }, 4000);
+}
+
+function requestFetch() {
+  window.dispatchEvent(new CustomEvent('possum:fetch', { 
+    detail: { callsign: CALLSIGN, date: DATE_STR } 
+  }));
+}
+
+// ── Receive flight candidates from extension ──
+window.addEventListener('possum:result', (e) => {
+  const { candidates, error } = e.detail;
+  
+  if (error || !candidates || candidates.length === 0) {
+    const msg = error || 'No flight history found for ' + CALLSIGN;
+    setStatus('error', msg);
+    document.getElementById('flights-list').innerHTML = `
+      <div style="padding:24px 16px;text-align:center;color:var(--muted);font-size:11px;line-height:1.8">
+        ${msg}<br>
+        <button onclick="requestFetch()" style="margin-top:8px;background:var(--accent);border:none;color:#fff;font-family:var(--mono);font-size:10px;padding:5px 12px;cursor:pointer;border-radius:3px">Retry</button>
+      </div>`;
+    return;
+  }
+  
+  flightCandidates = candidates;
+  
+  // Auto-select closest to date if provided, otherwise most recent
+  currentFlightIndex = 0;
+  if (DATE_STR) {
+    const target = new Date(DATE_STR.substring(0,4) + '-' + DATE_STR.substring(4,6) + '-' + DATE_STR.substring(6,8) + 'T12:00:00Z').getTime();
+    let minDiff = Infinity;
+    candidates.forEach((c, i) => {
+      const d = Math.abs(c.timestamp - target);
+      if (d < minDiff) {
+        minDiff = d;
+        currentFlightIndex = i;
+      }
+    });
+  } else {
+    currentFlightIndex = candidates.length - 1;
+  }
+  
+  renderFlightsList();
+  loadFlight(currentFlightIndex);
+  
+  setStatus('ok', `Found ${candidates.length} flights for ${CALLSIGN}`);
+});
 
 function renderFlightsList() {
   const flightsList = document.getElementById('flights-list');
@@ -734,18 +710,16 @@ function renderFlightsList() {
   flightCandidates.forEach((flight, idx) => {
     const div = document.createElement('div');
     div.className = 'flight-item';
-    if (idx === 0) div.classList.add('active');
+    if (idx === currentFlightIndex) div.classList.add('active');
     div.dataset.idx = idx;
     
-    const dateFormatted = flight.date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-    
     div.innerHTML = `
-      <div class="flight-callsign">${flight.callsign}</div>
-      <div class="flight-route">${flight.route}</div>
-      <div class="flight-date">${dateFormatted}</div>
+      <div class="flight-callsign">${CALLSIGN}</div>
+      <div class="flight-route">${flight.orig} → ${flight.dest}</div>
+      <div class="flight-date">${flight.dateLabel} ${flight.timeLabel}</div>
     `;
     
-    // HOVER to load
+    // Hover to load
     div.addEventListener('mouseenter', () => {
       document.querySelectorAll('.flight-item').forEach(el => el.classList.remove('active'));
       div.classList.add('active');
@@ -763,17 +737,43 @@ function loadFlight(idx) {
   if (idx < 0 || idx >= flightCandidates.length) return;
   
   currentFlightIndex = idx;
-  const flight = flightCandidates[idx];
-  const route = routeTemplates[flight.routeKey] || routeTemplates['KDFW_KLAX'];
+  const candidate = flightCandidates[idx];
   
-  renderMap(route);
-  renderFixPanel(route);
+  clearMap();
+  setStatus('loading', 'Loading route...');
+  
+  document.getElementById('route-title').textContent = `${candidate.orig} → ${candidate.dest}`;
+  
+  // Request route tokens from extension
+  window.dispatchEvent(new CustomEvent('possum:load', { 
+    detail: { candidate: candidate, callsign: CALLSIGN } 
+  }));
+  
   updateLegNav();
   
   if (!routePanelOpen) toggleRoutePanel();
 }
 
-// ── Search Fixes ──
+// ── Receive route tokens from extension ──
+window.addEventListener('possum:tokens', (e) => {
+  const { tokens, routeStrText, error } = e.detail;
+  
+  if (error) {
+    setStatus('error', 'Load error: ' + error);
+    return;
+  }
+  
+  lastTokens = tokens || [];
+  const candidate = flightCandidates[currentFlightIndex];
+  
+  setStatus('ok', lastTokens.length + ' fixes loaded — ' + CALLSIGN);
+  document.getElementById('fix-count').textContent = lastTokens.length + ' fixes';
+  
+  renderFixPanel(lastTokens);
+  renderMap(lastTokens, candidate);
+});
+
+// ── Search Fixes (Mock for now) ──
 function searchFixes() {
   const fix = document.getElementById('fix-input').value.trim().toUpperCase();
   
@@ -787,9 +787,7 @@ function searchFixes() {
   setStatus('loading', `Searching for ${fix}...`);
   
   setTimeout(() => {
-    // Generate varied mock results based on input
     const baseResults = generateMockFixResults(fix);
-    
     allSearchResults = baseResults.filter(r => r.score >= minScore);
     
     renderSearchResults(allSearchResults);
@@ -800,17 +798,14 @@ function searchFixes() {
 }
 
 function generateMockFixResults(query) {
-  // Generate phonetically similar results
   const results = [];
   const baseLat = 33.8 + (Math.random() * 4 - 2);
   const baseLon = -118.2 + (Math.random() * 4 - 2);
   
-  // Close matches
   results.push({ ident: query, score: 95, type: 'Waypoint', lat: baseLat, lon: baseLon });
   results.push({ ident: query.substring(0, 4) + 'A', score: 87, type: 'Waypoint', lat: baseLat + 0.3, lon: baseLon + 0.3 });
   results.push({ ident: query.substring(0, 3) + 'AA', score: 82, type: 'Waypoint', lat: baseLat - 0.2, lon: baseLon - 0.2 });
   
-  // More distant matches
   for (let i = 0; i < 7; i++) {
     const score = 79 - (i * 3);
     const lat = baseLat + (Math.random() * 2 - 1);
@@ -923,7 +918,7 @@ function clearMap() {
   mapMarkers = []; mapLines = []; mapLabels = [];
 }
 
-function renderMap(tokens) {
+function renderMap(tokens, candidate) {
   clearMap();
   if (!tokens || !tokens.length) return;
   
@@ -995,15 +990,6 @@ function renderMap(tokens) {
 // ── Fix Panel Rendering ──
 function renderFixPanel(tokens) {
   const fixList = document.getElementById('fix-list');
-  const routeTitle = document.getElementById('route-title');
-  const fixCount = document.getElementById('fix-count');
-  
-  if (tokens.length > 0) {
-    const first = tokens[0].ident.toUpperCase();
-    const last = tokens[tokens.length - 1].ident.toUpperCase();
-    routeTitle.textContent = `${first} → ${last}`;
-    fixCount.textContent = `${tokens.length} fixes`;
-  }
   
   fixList.innerHTML = '';
   
@@ -1033,8 +1019,6 @@ function renderFixPanel(tokens) {
     
     fixList.appendChild(div);
   });
-  
-  lastTokens = tokens;
 }
 
 function highlightFixPanel(idx) {
@@ -1046,7 +1030,7 @@ function highlightFixPanel(idx) {
   }
 }
 
-// ── Flight Navigation (PREV/NEXT) ──
+// ── Flight Navigation ──
 function prevFlight() {
   if (currentFlightIndex > 0) {
     loadFlight(currentFlightIndex - 1);
