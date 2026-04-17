@@ -603,11 +603,11 @@ function parseURLParams() {
 // ── ALTITUDE COLOR SYSTEM ──
 function parseAltitude(alt) {
   if (!alt) return 0;
-  const str = alt.toString().toUpperCase();
+  const str = alt.toString().toUpperCase().replace(/,/g, ''); // Remove commas
   if (str.startsWith('FL')) {
     return parseInt(str.substring(2)) * 100;
   }
-  return parseInt(alt);
+  return parseInt(str);
 }
 
 function getAltitudeColor(alt) {
@@ -786,7 +786,7 @@ window.addEventListener('possum:tokens', (e) => {
   renderMap(lastTokens, candidate);
 });
 
-// ── Search Fixes (Mock for now) ──
+// ── Search Fixes (TODO: Integrate real CIFP search) ──
 function searchFixes() {
   const fix = document.getElementById('fix-input').value.trim().toUpperCase();
   
@@ -795,44 +795,10 @@ function searchFixes() {
     return;
   }
   
-  const minScore = parseInt(document.getElementById('score-input').value);
+  setStatus('waiting', 'CIFP phonetic search coming soon...');
   
-  setStatus('loading', `Searching for ${fix}...`);
-  
-  setTimeout(() => {
-    const baseResults = generateMockFixResults(fix);
-    allSearchResults = baseResults.filter(r => r.score >= minScore);
-    
-    renderSearchResults(allSearchResults);
-    renderSearchMarkers(allSearchResults.slice(0, 25));
-    
-    setStatus('ok', `Found ${allSearchResults.length} matches (showing top 25 on map)`);
-  }, 500);
-}
-
-function generateMockFixResults(query) {
-  const results = [];
-  const baseLat = 33.8 + (Math.random() * 4 - 2);
-  const baseLon = -118.2 + (Math.random() * 4 - 2);
-  
-  results.push({ ident: query, score: 95, type: 'Waypoint', lat: baseLat, lon: baseLon });
-  results.push({ ident: query.substring(0, 4) + 'A', score: 87, type: 'Waypoint', lat: baseLat + 0.3, lon: baseLon + 0.3 });
-  results.push({ ident: query.substring(0, 3) + 'AA', score: 82, type: 'Waypoint', lat: baseLat - 0.2, lon: baseLon - 0.2 });
-  
-  for (let i = 0; i < 7; i++) {
-    const score = 79 - (i * 3);
-    const lat = baseLat + (Math.random() * 2 - 1);
-    const lon = baseLon + (Math.random() * 2 - 1);
-    results.push({
-      ident: query.substring(0, 3) + String.fromCharCode(65 + i),
-      score: score,
-      type: i % 2 === 0 ? 'Waypoint' : 'Procedure',
-      lat: lat,
-      lon: lon
-    });
-  }
-  
-  return results;
+  const resultsDiv = document.getElementById('search-results');
+  resultsDiv.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:20px;line-height:1.6">CIFP phonetic search integration coming soon!<br><br>This will search 77,738 fixes nationwide using Jaro-Winkler, Soundex, Metaphone scoring.</div>';
 }
 
 function renderSearchResults(results) {
