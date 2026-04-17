@@ -394,13 +394,13 @@
     border: none;
     box-shadow: none;
     font-family: 'Courier New', monospace;
-    font-size: 10px;
+    font-size: 13px;
     color: rgba(200,208,220,0.85);
     white-space: nowrap;
     text-shadow: 0 1px 3px #000, 0 0 6px #000;
     pointer-events: none;
   }
-  .fix-map-label.airport-lbl { color: rgba(74,144,217,0.95); font-size: 11px; font-weight: bold; }
+  .fix-map-label.airport-lbl { color: rgba(74,144,217,0.95); font-size: 14px; font-weight: bold; }
 
   .possum-popup .leaflet-popup-content-wrapper {
     background: #0d0f14;
@@ -433,17 +433,17 @@
   
   <div class="header-input-group">
     <label class="header-label">Operator:</label>
-    <input type="text" id="operator-input" class="header-input" placeholder="DAL" maxlength="6">
+    <input type="text" id="operator-input" class="header-input" placeholder="DAL" maxlength="6" onkeypress="if(event.key==='Enter')searchFlights()">
   </div>
   
   <div class="header-input-group">
     <label class="header-label">Number:</label>
-    <input type="text" id="number-input" class="header-input" placeholder="1187">
+    <input type="text" id="number-input" class="header-input" placeholder="1187" onkeypress="if(event.key==='Enter')searchFlights()">
   </div>
   
   <div class="header-input-group">
     <label class="header-label">Date:</label>
-    <input type="date" id="date-input" class="header-input">
+    <input type="date" id="date-input" class="header-input" onkeypress="if(event.key==='Enter')searchFlights()">
   </div>
   
   <button id="go-btn" onclick="searchFlights()">GO →</button>
@@ -937,22 +937,25 @@ function renderMap(tokens, candidate) {
     }
   }
   
-  console.log('[Cockpit] White line check:', {
+  const debugInfo = {
     totalFixes: tokens.length,
     destIdent: destAirport?.ident,
     destHasCoords: !!(destAirport?.lat && destAirport?.lon),
     lastFixIdent: lastFixWithCoords?.ident,
     lastFixHasCoords: !!lastFixWithCoords
-  });
+  };
+  console.log('[Cockpit] White line check:', JSON.stringify(debugInfo));
   
   if (lastFixWithCoords && destAirport && destAirport.lat && destAirport.lon) {
-    console.log('[Cockpit] Drawing white gap-filler line from', lastFixWithCoords.ident, 'to', destAirport.ident);
+    console.log('[Cockpit] ✅ Drawing white gap-filler line from ' + lastFixWithCoords.ident + ' to ' + destAirport.ident);
     const gapLine = L.polyline(
       [[lastFixWithCoords.lat, lastFixWithCoords.lon], [destAirport.lat, destAirport.lon]],
       { color: '#ffffff', weight: 3, opacity: 0.88 }
     ).addTo(map);
     
     mapLines.push(gapLine);
+  } else {
+    console.log('[Cockpit] ❌ Cannot draw white line - missing coordinates');
   }
   
   // Markers
