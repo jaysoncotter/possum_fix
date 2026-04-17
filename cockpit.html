@@ -432,17 +432,17 @@
   <div class="page-title">Cockpit</div>
   
   <div class="header-input-group">
-    <label class="header-label">Operator:</label>
+    <label class="header-label" for="operator-input">Operator:</label>
     <input type="text" id="operator-input" class="header-input" placeholder="DAL" maxlength="6" onkeypress="if(event.key==='Enter')searchFlights()">
   </div>
   
   <div class="header-input-group">
-    <label class="header-label">Number:</label>
+    <label class="header-label" for="number-input">Number:</label>
     <input type="text" id="number-input" class="header-input" placeholder="1187" onkeypress="if(event.key==='Enter')searchFlights()">
   </div>
   
   <div class="header-input-group">
-    <label class="header-label">Date:</label>
+    <label class="header-label" for="date-input">Date:</label>
     <input type="date" id="date-input" class="header-input" onkeypress="if(event.key==='Enter')searchFlights()">
   </div>
   
@@ -943,7 +943,38 @@ function renderMap(tokens, candidate) {
     mapLines.push(line);
   }
   
-  // White gap filler line - find last fix with coordinates, then draw to destination
+  // Markers
+  tokens.forEach((item, idx) => {
+    // Skip if coordinates are missing or invalid
+    if (!item.lat || !item.lon) return;
+    if (isNaN(item.lat) || isNaN(item.lon)) return;
+    
+    const isAirport = item.type === 'airport';
+    const color = getAltitudeColor(item.actualAlt);
+    const size = isAirport ? 13 : 8;
+    
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:${isAirport ? '2px solid rgba(255,255,255,0.6)' : '1px solid rgba(255,255,255,0.2)'};box-shadow:0 0 ${isAirport ? 10 : 5}px ${color}88;cursor:pointer"></div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2]
+    });
+    
+    const labelIcon = L.divIcon({
+      className: 'fix-map-label' + (isAirport ? ' airport-lbl' : ''),
+      html: `<div>${item.ident.toUpperCase()}</div>`,
+      iconAnchor: [0, -4]
+    });
+    
+    const marker = L.marker([item.lat, item.lon], { icon }).addTo(map);
+    marker.on('click', () => highlightFixPanel(idx));
+    mapMarkers.push(marker);
+    
+    const labelMarker = L.marker([item.lat, item.lon], { icon: labelIcon, interactive: false }).addTo(map);
+    mapLabels.push(labelMarker);
+  });
+  
+  // White gap filler line - DRAWN LAST so it's on top
   const destAirport = tokens[tokens.length - 1];
   
   // Find the last token with valid coordinates (working backwards from second-to-last)
@@ -982,44 +1013,13 @@ function renderMap(tokens, candidate) {
     console.log('[Cockpit] ✅ Drawing white gap-filler line from ' + lastFixWithCoords.ident + ' to ' + destAirport.ident);
     const gapLine = L.polyline(
       [[lastFixWithCoords.lat, lastFixWithCoords.lon], [destLat, destLon]],
-      { color: '#ffffff', weight: 3, opacity: 0.88 }
+      { color: '#ffffff', weight: 4, opacity: 1.0 }  // Thicker and fully opaque
     ).addTo(map);
     
     mapLines.push(gapLine);
   } else {
     console.log('[Cockpit] ❌ Cannot draw white line - airport ' + destAirport?.ident + ' not in database');
   }
-  
-  // Markers
-  tokens.forEach((item, idx) => {
-    // Skip if coordinates are missing or invalid
-    if (!item.lat || !item.lon) return;
-    if (isNaN(item.lat) || isNaN(item.lon)) return;
-    
-    const isAirport = item.type === 'airport';
-    const color = getAltitudeColor(item.actualAlt);
-    const size = isAirport ? 13 : 8;
-    
-    const icon = L.divIcon({
-      className: '',
-      html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:${isAirport ? '2px solid rgba(255,255,255,0.6)' : '1px solid rgba(255,255,255,0.2)'};box-shadow:0 0 ${isAirport ? 10 : 5}px ${color}88;cursor:pointer"></div>`,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2]
-    });
-    
-    const labelIcon = L.divIcon({
-      className: 'fix-map-label' + (isAirport ? ' airport-lbl' : ''),
-      html: `<div>${item.ident.toUpperCase()}</div>`,
-      iconAnchor: [0, -4]
-    });
-    
-    const marker = L.marker([item.lat, item.lon], { icon }).addTo(map);
-    marker.on('click', () => highlightFixPanel(idx));
-    mapMarkers.push(marker);
-    
-    const labelMarker = L.marker([item.lat, item.lon], { icon: labelIcon, interactive: false }).addTo(map);
-    mapLabels.push(labelMarker);
-  });
   
   map.fitBounds(L.latLngBounds(valid.map(t => [t.lat, t.lon])), { padding: [50, 50] });
 }
