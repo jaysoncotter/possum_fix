@@ -24,6 +24,7 @@
     --mono:     'Courier New', monospace;
     --sans:     'Trebuchet MS', 'Segoe UI', sans-serif;
     --panel-w:  320px;
+    --fix-panel-w: 290px;
     --header-h: 42px;
     --status-h: 32px;
     --bsco-gold: #d4a017;
@@ -69,39 +70,38 @@
     left: 0; right: 0; bottom: 0; z-index: 1;
   }
 
-  /* ── Panel tab ── */
-  #panel-tab {
-    position: fixed; top: 50%; right: 0;
+  /* ── LEFT SEARCH PANEL (slides from left) ── */
+  #search-panel-tab {
+    position: fixed; top: 50%; left: 0;
     transform: translateY(-50%);
     z-index: 900;
     background: var(--surface);
-    border: 1px solid var(--border); border-right: none;
+    border: 1px solid var(--border); border-left: none;
     padding: 10px 7px;
     font-family: var(--mono); font-size: 13px; font-weight: bold;
     color: var(--muted); cursor: pointer;
     transition: all 0.2s; user-select: none; letter-spacing: 1px;
   }
-  #panel-tab:hover { color: var(--accent); border-color: var(--accent); }
-  #panel-tab.open  { right: var(--panel-w); color: var(--accent); border-color: var(--accent); }
+  #search-panel-tab:hover { color: var(--accent); border-color: var(--accent); }
+  #search-panel-tab.open  { left: var(--panel-w); color: var(--accent); border-color: var(--accent); }
 
-  /* ── Side panel ── */
-  #side-panel {
+  #search-panel {
     position: fixed;
     top: calc(var(--header-h) + var(--status-h));
-    right: calc(-1 * var(--panel-w));
+    left: calc(-1 * var(--panel-w));
     width: var(--panel-w); bottom: 0;
     background: rgba(10,12,15,0.97);
-    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
     z-index: 800;
-    transition: right 0.25s cubic-bezier(0.4,0,0.2,1);
+    transition: left 0.25s cubic-bezier(0.4,0,0.2,1);
     display: flex; flex-direction: column;
     backdrop-filter: blur(8px);
     overflow-y: auto;
   }
-  #side-panel.open { right: 0; }
-  #side-panel::-webkit-scrollbar { width: 4px; }
-  #side-panel::-webkit-scrollbar-track { background: transparent; }
-  #side-panel::-webkit-scrollbar-thumb { background: var(--border2); }
+  #search-panel.open { left: 0; }
+  #search-panel::-webkit-scrollbar { width: 4px; }
+  #search-panel::-webkit-scrollbar-track { background: transparent; }
+  #search-panel::-webkit-scrollbar-thumb { background: var(--border2); }
 
   /* ── Panel sections ── */
   .panel-section {
@@ -216,11 +216,108 @@
   .fa-route { color: var(--text); }
   .fa-date { color: var(--muted); font-size: 9px; }
 
-  /* ── BSCo Aura Ad ── */
+  /* ── RIGHT FIX PANEL (slides from right) ── */
+  #fix-panel-tab {
+    position: fixed; top: 50%; right: 0;
+    transform: translateY(-50%);
+    z-index: 900;
+    background: var(--surface);
+    border: 1px solid var(--border); border-right: none;
+    padding: 10px 7px;
+    font-family: var(--mono); font-size: 13px; font-weight: bold;
+    color: var(--muted); cursor: pointer;
+    transition: all 0.2s; user-select: none; letter-spacing: 1px;
+  }
+  #fix-panel-tab:hover { color: var(--accent); border-color: var(--accent); }
+  #fix-panel-tab.open  { right: var(--fix-panel-w); color: var(--accent); border-color: var(--accent); }
+
+  #fix-panel {
+    position: fixed;
+    top: calc(var(--header-h) + var(--status-h));
+    right: calc(-1 * var(--fix-panel-w));
+    width: var(--fix-panel-w); bottom: 0;
+    background: rgba(10,12,15,0.97);
+    border-left: 1px solid var(--border);
+    z-index: 800;
+    transition: right 0.25s cubic-bezier(0.4,0,0.2,1);
+    display: flex; flex-direction: column;
+    backdrop-filter: blur(8px);
+  }
+  #fix-panel.open { right: 0; }
+
+  #fix-panel-header {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  #panel-route { color: var(--accent); font-size: 11px; font-weight: bold; }
+  
+  #fix-panel-options {
+    padding: 5px 12px; border-bottom: 1px solid var(--border);
+    display: flex; gap: 12px; flex-shrink: 0;
+  }
+  .toggle-label {
+    display: flex; align-items: center; gap: 4px;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    cursor: pointer; user-select: none;
+  }
+  .toggle-label input { accent-color: var(--accent); cursor: pointer; }
+  
+  #fix-list {
+    overflow-y: auto; flex: 1; padding: 2px 0;
+  }
+  #fix-list::-webkit-scrollbar { width: 3px; }
+  #fix-list::-webkit-scrollbar-track { background: transparent; }
+  #fix-list::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  .fix-item {
+    display: flex; align-items: flex-start; padding: 5px 12px;
+    cursor: pointer; border-left: 3px solid transparent;
+    transition: background 0.1s; gap: 8px;
+  }
+  .fix-item:hover { background: rgba(255,255,255,0.03); }
+  .fix-item.active { background: rgba(232,93,38,0.08); border-left-color: var(--accent); }
+  .fix-item.type-airport { border-left-color: var(--blue); }
+  .fix-item.type-navaid { border-left-color: var(--green); }
+
+  .alt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+  .fix-ident { font-family: var(--mono); font-size: 11px; font-weight: 600; color: #c8d0dc; }
+  .fix-ident.airport { color: var(--blue); font-size: 12px; }
+  .fix-ident.navaid { color: var(--green); }
+  .fix-track { font-family: var(--mono); font-size: 10px; color: var(--green); margin-top: 1px; }
+
+  #fix-panel-leg-nav {
+    border-top: 1px solid var(--border); padding: 6px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono); font-size: 10px; color: var(--muted); flex-shrink: 0;
+  }
+  #fix-panel-leg-nav button {
+    background: var(--border2); border: 1px solid var(--border2); color: var(--text);
+    font-family: var(--mono); font-size: 11px; padding: 2px 8px; cursor: pointer; transition: all 0.15s;
+  }
+  #fix-panel-leg-nav button:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #fix-panel-leg-nav button:disabled { opacity: 0.3; cursor: default; }
+  #fix-panel-leg-nav button:disabled:hover { background: var(--border2); border-color: var(--border2); color: var(--text); }
+
+  /* ── Leaflet popup styles ── */
+  .possum-popup .leaflet-popup-content-wrapper {
+    background: #0d0f14; border: 1px solid #2a2a3a; border-radius: 0;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.85); color: var(--text);
+  }
+  .possum-popup .leaflet-popup-tip { background: #0d0f14; }
+  .possum-popup .leaflet-popup-content { margin: 10px 13px; font-family: 'Courier New', monospace; font-size: 11px; }
+  .pp-name { font-size: 13px; font-weight: bold; color: #f07940; letter-spacing: 1px; margin-bottom: 4px; }
+  .pp-sub  { font-size: 10px; color: var(--muted); margin-bottom: 5px; }
+  .pp-row  { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 2px; }
+  .pp-lbl  { color: var(--muted); font-size: 10px; }
+  .pp-val  { color: var(--text); font-size: 10px; text-align: right; }
+  .pp-badge { display: inline-flex; align-items: center; gap: 4px; margin-top: 5px; padding: 2px 6px; font-size: 9px; font-weight: bold; }
+
+  /* ── BSCo Aura Ad (BOTTOM-LEFT) ── */
   #bsco-ad {
     position: fixed;
     bottom: 12px;
-    right: 12px;
+    left: 12px;
     z-index: 1100;
     background: rgba(13, 21, 37, 0.95);
     border: 1px solid var(--border);
@@ -266,6 +363,22 @@
     transform: scale(1.02);
     transition: all 0.2s;
   }
+
+  /* ── Leaflet overrides ── */
+  .leaflet-control-zoom a { background: var(--surface) !important; color: var(--muted) !important; border-color: var(--border) !important; }
+  .leaflet-control-zoom a:hover { color: var(--accent) !important; }
+  .leaflet-control-attribution { background: rgba(10,12,15,0.75) !important; color: var(--muted) !important; font-size: 8px !important; }
+  .leaflet-control-attribution a { color: var(--muted) !important; }
+
+  /* ── Map fix labels ── */
+  .fix-map-label {
+    background: transparent; border: none; box-shadow: none;
+    font-family: 'Courier New', monospace; font-size: 10px;
+    color: rgba(200,208,220,0.85); white-space: nowrap;
+    text-shadow: 0 1px 3px #000, 0 0 6px #000;
+    pointer-events: none;
+  }
+  .fix-map-label.airport-lbl { color: rgba(74,144,217,0.95); font-size: 11px; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -290,11 +403,11 @@
 <!-- Map -->
 <div id="map"></div>
 
-<!-- Panel Tab -->
-<div id="panel-tab" onclick="togglePanel()">&gt;&gt;</div>
+<!-- LEFT SEARCH PANEL TAB -->
+<div id="search-panel-tab" class="open" onclick="toggleSearchPanel()">&lt;&lt;</div>
 
-<!-- Side Panel -->
-<div id="side-panel" class="open">
+<!-- LEFT SEARCH PANEL -->
+<div id="search-panel" class="open">
   
   <!-- FLIGHT SEARCH SECTION -->
   <div class="panel-section">
@@ -392,6 +505,36 @@
 
 </div>
 
+<!-- RIGHT FIX PANEL TAB -->
+<div id="fix-panel-tab" onclick="toggleFixPanel()">&lt;&lt;</div>
+
+<!-- RIGHT FIX PANEL -->
+<div id="fix-panel">
+  <div id="fix-panel-header">
+    <span id="panel-route">—</span>
+    <span id="panel-fix-count">0 fixes</span>
+  </div>
+  
+  <div id="fix-panel-options">
+    <label class="toggle-label">
+      <input type="checkbox" id="show-track" checked>
+      <span>Alt/Spd</span>
+    </label>
+    <label class="toggle-label">
+      <input type="checkbox" id="show-loc" checked>
+      <span>Location</span>
+    </label>
+  </div>
+  
+  <div id="fix-list"></div>
+  
+  <div id="fix-panel-leg-nav">
+    <button id="prev-btn" disabled onclick="prevLeg()">◀</button>
+    <span id="leg-label">—</span>
+    <button id="next-btn" disabled onclick="nextLeg()">▶</button>
+  </div>
+</div>
+
 <!-- BSCo Aura Ad -->
 <div id="bsco-ad" class="minimized">
   <div id="ad-toggle" onclick="toggleAd()"></div>
@@ -408,13 +551,14 @@
 
 <script>
 // ── Globals ──
-let map, panelOpen = true;
+let map, searchPanelOpen = true, fixPanelOpen = false;
 let statusBar = document.getElementById('status-bar');
 let statusText = document.getElementById('status-text');
 let mapMarkers = [], mapLines = [], mapLabels = [];
+let flightCandidates = [], currentIndex = 0, lastTokens = [];
 
 // ── Initialize map ──
-map = L.map('map', { zoomControl: true }).setView([39.8283, -98.5795], 5); // Center USA
+map = L.map('map', { zoomControl: true }).setView([39.8283, -98.5795], 5);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap, &copy; CartoDB',
   subdomains: 'abcd',
@@ -425,20 +569,16 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
 function parseURLParams() {
   const params = new URLSearchParams(window.location.search);
   
-  // Operator
   const operator = params.get('operator');
   if (operator) document.getElementById('operator-input').value = operator.toUpperCase();
   
-  // Number
   const number = params.get('number');
   if (number) document.getElementById('number-input').value = number;
   
-  // Type (civ/mil/both)
   const type = params.get('type') || 'both';
   document.getElementById('civ-check').checked = (type === 'civ' || type === 'both');
   document.getElementById('mil-check').checked = (type === 'mil' || type === 'both');
   
-  // Date (MMDDYYYY → YYYY-MM-DD)
   const dateStr = params.get('date') || '03012026';
   const mm = dateStr.substring(0, 2);
   const dd = dateStr.substring(2, 4);
@@ -446,17 +586,49 @@ function parseURLParams() {
   document.getElementById('date-input').value = `${yyyy}-${mm}-${dd}`;
   updateDateHint();
   
-  // Fix
   const fix = params.get('fix');
   if (fix) document.getElementById('fix-input').value = fix.toUpperCase();
   
-  // Search Type
   const searchType = params.get('searchType') || 'both';
   document.querySelector(`input[name="searchType"][value="${searchType}"]`).checked = true;
   
-  // Airport
   const airport = params.get('airport');
   if (airport) document.getElementById('airport-input').value = airport.toUpperCase();
+}
+
+// ── ALTITUDE COLOR SYSTEM (7-BAND WITH FL/FEET FIX) ──
+function parseAltitude(alt) {
+  if (!alt) return 0;
+  const str = alt.toString().toUpperCase();
+  if (str.startsWith('FL')) {
+    return parseInt(str.substring(2)) * 100;
+  }
+  return parseInt(alt);
+}
+
+function getAltitudeColor(alt) {
+  const feet = parseAltitude(alt);
+  
+  // Red: 0-7K OR FL500-FL700 (catches 4500ft misread as FL45)
+  if (feet <= 7000 || (feet >= 50000 && feet <= 70000)) return '#e85555';
+  
+  // Orange: 7K-15K OR FL701-FL1500 (catches FL70-FL150 range)
+  if (feet <= 15000 || (feet > 70000 && feet <= 150000)) return '#ff8c42';
+  
+  // Yellow: 15K-25K
+  if (feet <= 25000) return '#f0c040';
+  
+  // Green: 25K-30K
+  if (feet <= 30000) return '#3db87a';
+  
+  // Blue: 30K-40K
+  if (feet <= 40000) return '#4a90d9';
+  
+  // Indigo: 40K-45K
+  if (feet <= 45000) return '#6366f1';
+  
+  // Violet: 45K+
+  return '#8b6fd4';
 }
 
 // ── Date Hint Calculator ──
@@ -476,7 +648,6 @@ function updateDateHint() {
   const fmt = (d) => `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
   document.getElementById('date-hint').textContent = `searches ${fmt(before)}–${fmt(after)}`;
   
-  // Update header display
   const headerFmt = (d) => `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
   document.getElementById('flight-date-display').textContent = `Date: ${headerFmt(date)}`;
 }
@@ -504,7 +675,6 @@ function searchAirport() {
   window.open(url, 'airport_search', 'width=800,height=600,resizable=yes,scrollbars=yes');
 }
 
-// ── Flight Type Helper ──
 function getFlightType() {
   const civ = document.getElementById('civ-check').checked;
   const mil = document.getElementById('mil-check').checked;
@@ -527,31 +697,49 @@ function searchFlights() {
   const callsign = operator + number;
   setStatus('loading', `Searching FlightAware for ${callsign}...`);
   
-  // Mock results (in real implementation, call FlightAware API)
   setTimeout(() => {
     const resultsDiv = document.getElementById('fa-results');
     resultsDiv.innerHTML = `
-      <div class="fa-item active">
+      <div class="fa-item active" onclick="selectFlight(0)">
         <div class="fa-callsign">${callsign}</div>
         <div class="fa-route">KDFW → KLAX</div>
         <div class="fa-date">Filed 02/28/26 14:23Z</div>
       </div>
-      <div class="fa-item">
+      <div class="fa-item" onclick="selectFlight(1)">
         <div class="fa-callsign">${callsign}</div>
         <div class="fa-route">KDFW → KLAX</div>
         <div class="fa-date">Filed 02/27/26 14:18Z</div>
       </div>
-      <div class="fa-item">
+      <div class="fa-item" onclick="selectFlight(2)">
         <div class="fa-callsign">${callsign}</div>
         <div class="fa-route">KDFW → KLAX</div>
         <div class="fa-date">Filed 02/26/26 14:25Z</div>
       </div>
     `;
     setStatus('ok', `Found flights for ${callsign}`);
-    
-    // Update header meta
     document.getElementById('flight-meta').innerHTML = `<span>${callsign}</span> KDFW → KLAX`;
   }, 1000);
+}
+
+function selectFlight(idx) {
+  document.querySelectorAll('.fa-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.fa-item')[idx].classList.add('active');
+  
+  // Mock route data
+  const mockRoute = [
+    { ident: 'KDFW', lat: 32.8998, lon: -97.0403, type: 'airport', actualAlt: '0' },
+    { ident: 'WITTE', lat: 33.021, lon: -97.154, actualAlt: '5000', actualSpeed: '240' },
+    { ident: 'VESLO', lat: 33.198, lon: -97.432, actualAlt: '9700', actualSpeed: '258' },
+    { ident: 'SWEET', lat: 33.512, lon: -97.891, actualAlt: '17800', actualSpeed: '292' },
+    { ident: 'MALIBU', lat: 34.015, lon: -99.124, actualAlt: '35000', actualSpeed: '490' },
+    { ident: 'GRACO', lat: 34.456, lon: -102.567, actualAlt: '37000', actualSpeed: '492' },
+    { ident: 'KLAX', lat: 33.9425, lon: -118.4081, type: 'airport', actualAlt: '0' }
+  ];
+  
+  renderMap(mockRoute);
+  renderFixPanel(mockRoute);
+  
+  if (!fixPanelOpen) toggleFixPanel();
 }
 
 // ── Search Fixes (Mock) ──
@@ -564,26 +752,173 @@ function searchFixes() {
   }
   
   setStatus('loading', `Searching for ${fix}...`);
-  
-  // Mock phonetic search results
   setTimeout(() => {
     setStatus('ok', `Found matches for ${fix}`);
-    // In real implementation: search cifp_data.json, render markers on map
   }, 800);
 }
 
-// ── Panel Toggle ──
-function togglePanel() {
-  panelOpen = !panelOpen;
-  document.getElementById('side-panel').classList.toggle('open', panelOpen);
-  const tab = document.getElementById('panel-tab');
-  tab.classList.toggle('open', panelOpen);
-  tab.textContent = panelOpen ? '<<' : '>>';
+// ── Map Rendering ──
+function clearMap() {
+  mapMarkers.forEach(m => { if (m) map.removeLayer(m); });
+  mapLines.forEach(l => { if (l) map.removeLayer(l); });
+  mapLabels.forEach(l => { if (l) map.removeLayer(l); });
+  mapMarkers = []; mapLines = []; mapLabels = [];
 }
 
-// ── Ad Toggle ──
+function renderMap(tokens) {
+  clearMap();
+  if (!tokens || !tokens.length) return;
+  
+  const valid = tokens.filter(t => t.lat && t.lon);
+  if (!valid.length) {
+    setStatus('error', 'No coordinates available');
+    return;
+  }
+  
+  // Color-coded polyline segments
+  for (let i = 0; i < tokens.length - 1; i++) {
+    const a = tokens[i], b = tokens[i + 1];
+    if (!a.lat || !b.lat) continue;
+    
+    const midAlt = (parseAltitude(a.actualAlt || 0) + parseAltitude(b.actualAlt || 0)) / 2;
+    const color = getAltitudeColor(midAlt);
+    
+    L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
+      color: color, weight: 3, opacity: 0.88
+    }).addTo(map);
+  }
+  
+  // White gap filler line (last fix to destination airport)
+  const lastFix = tokens[tokens.length - 2]; // Second to last (last is airport)
+  const destAirport = tokens[tokens.length - 1];
+  if (lastFix && destAirport && lastFix.type !== 'airport' && destAirport.type === 'airport') {
+    L.polyline(
+      [[lastFix.lat, lastFix.lon], [destAirport.lat, destAirport.lon]],
+      { color: '#ffffff', weight: 3, opacity: 0.88 }
+    ).addTo(map);
+  }
+  
+  // Markers
+  tokens.forEach((item, idx) => {
+    if (!item.lat || !item.lon) return;
+    
+    const isAirport = item.type === 'airport';
+    const color = getAltitudeColor(item.actualAlt);
+    const size = isAirport ? 13 : 8;
+    
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:${isAirport ? '2px solid rgba(255,255,255,0.6)' : '1px solid rgba(255,255,255,0.2)'};box-shadow:0 0 ${isAirport ? 10 : 5}px ${color}88;cursor:pointer"></div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2]
+    });
+    
+    const labelIcon = L.divIcon({
+      className: 'fix-map-label' + (isAirport ? ' airport-lbl' : ''),
+      html: `<div>${item.ident.toUpperCase()}</div>`,
+      iconAnchor: [0, -4]
+    });
+    
+    const marker = L.marker([item.lat, item.lon], { icon }).addTo(map);
+    marker.on('click', () => highlightFixPanel(idx));
+    mapMarkers.push(marker);
+    
+    const labelMarker = L.marker([item.lat, item.lon], { icon: labelIcon, interactive: false }).addTo(map);
+    mapLabels.push(labelMarker);
+  });
+  
+  map.fitBounds(L.latLngBounds(valid.map(t => [t.lat, t.lon])), { padding: [50, 50] });
+}
+
+// ── Fix Panel Rendering ──
+function renderFixPanel(tokens) {
+  const fixList = document.getElementById('fix-list');
+  const panelRoute = document.getElementById('panel-route');
+  const fixCount = document.getElementById('panel-fix-count');
+  
+  if (tokens.length > 0) {
+    const first = tokens[0].ident.toUpperCase();
+    const last = tokens[tokens.length - 1].ident.toUpperCase();
+    panelRoute.textContent = `${first} → ${last}`;
+    fixCount.textContent = `${tokens.length} fixes`;
+  }
+  
+  fixList.innerHTML = '';
+  
+  tokens.forEach((item, idx) => {
+    const ident = item.ident.toUpperCase();
+    const isAirport = item.type === 'airport';
+    const dotColor = getAltitudeColor(item.actualAlt);
+    
+    const div = document.createElement('div');
+    div.className = `fix-item ${isAirport ? 'type-airport' : ''}`;
+    div.dataset.idx = idx;
+    
+    div.innerHTML = `
+      <div class="alt-dot" style="background:${dotColor}"></div>
+      <div style="min-width:0;flex:1">
+        <div class="fix-ident ${isAirport ? 'airport' : ''}">${ident}</div>
+        ${item.actualAlt && item.actualSpeed ? `<div class="fix-track">${item.actualAlt} ft  ${item.actualSpeed} kt</div>` : ''}
+      </div>
+    `;
+    
+    div.addEventListener('click', () => {
+      highlightFixPanel(idx);
+      if (item.lat && item.lon) {
+        map.panTo([item.lat, item.lon], { animate: true });
+        if (mapMarkers[idx]) mapMarkers[idx].openPopup();
+      }
+    });
+    
+    fixList.appendChild(div);
+  });
+  
+  lastTokens = tokens;
+}
+
+function highlightFixPanel(idx) {
+  document.querySelectorAll('.fix-item').forEach(el => el.classList.remove('active'));
+  const el = document.querySelector(`.fix-item[data-idx="${idx}"]`);
+  if (el) {
+    el.classList.add('active');
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+// ── Panel Toggles ──
+function toggleSearchPanel() {
+  searchPanelOpen = !searchPanelOpen;
+  document.getElementById('search-panel').classList.toggle('open', searchPanelOpen);
+  const tab = document.getElementById('search-panel-tab');
+  tab.classList.toggle('open', searchPanelOpen);
+  tab.textContent = searchPanelOpen ? '<<' : '>>';
+}
+
+function toggleFixPanel() {
+  fixPanelOpen = !fixPanelOpen;
+  document.getElementById('fix-panel').classList.toggle('open', fixPanelOpen);
+  const tab = document.getElementById('fix-panel-tab');
+  tab.classList.toggle('open', fixPanelOpen);
+  tab.textContent = fixPanelOpen ? '>>' : '<<';
+}
+
 function toggleAd() {
   document.getElementById('bsco-ad').classList.toggle('minimized');
+}
+
+// ── Leg Navigation ──
+function prevLeg() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    selectFlight(currentIndex);
+  }
+}
+
+function nextLeg() {
+  if (currentIndex < flightCandidates.length - 1) {
+    currentIndex++;
+    selectFlight(currentIndex);
+  }
 }
 
 // ── UI helpers ──
