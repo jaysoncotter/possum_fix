@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🛫 Cockpit</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --bg:       #0a0c0f;
+    --surface:  #111318;
+    --border:   #1e2128;
+    --border2:  #2a2f3a;
+    --text:     #e8eaf0;
+    --muted:    #6a7585;
+    --accent:   #e85d26;
+    --accent2:  #f07940;
+    --blue:     #4a90d9;
+    --green:    #3db87a;
+    --yellow:   #f0c040;
+    --red:      #e85555;
+    --purple:   #8b6fd4;
+    --mono:     'Courier New', monospace;
+    --sans:     'Trebuchet MS', 'Segoe UI', sans-serif;
+    --panel-w:  320px;
+    --header-h: 42px;
+    --status-h: 32px;
+    --bsco-gold: #d4a017;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; overflow: hidden; }
+
+  /* ── Header ── */
+  #header {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 12px; gap: 10px; z-index: 1000;
+  }
+  .logo-link { display: flex; align-items: center; gap: 6px; text-decoration: none; color: var(--text); flex-shrink: 0; }
+  .logo-link .paw  { font-size: 18px; }
+  .logo-link .word { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .page-title { font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+  #flight-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #flight-meta span { color: var(--blue); }
+  #flight-date-display {
+    margin-left: auto; font-family: var(--mono); font-size: 13px; font-weight: bold;
+    color: #c8d8f0; letter-spacing: 0.05em; white-space: nowrap; flex-shrink: 0;
+  }
+
+  /* ── Status bar ── */
+  #status-bar {
+    position: fixed; top: var(--header-h); left: 0; right: 0; height: var(--status-h);
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 12px; gap: 8px;
+    font-family: var(--mono); font-size: 11px; color: var(--muted); z-index: 999;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  #status-bar.loading .dot { background: var(--yellow); animation: pulse 1s ease-in-out infinite; }
+  #status-bar.ok      .dot { background: var(--green); }
+  #status-bar.error   .dot { background: var(--red); }
+  #status-bar.waiting .dot { background: var(--purple); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── Map ── */
+  #map {
+    position: fixed;
+    top: calc(var(--header-h) + var(--status-h));
+    left: 0; right: 0; bottom: 0; z-index: 1;
+  }
+
+  /* ── Panel tab ── */
+  #panel-tab {
+    position: fixed; top: 50%; right: 0;
+    transform: translateY(-50%);
+    z-index: 900;
+    background: var(--surface);
+    border: 1px solid var(--border); border-right: none;
+    padding: 10px 7px;
+    font-family: var(--mono); font-size: 13px; font-weight: bold;
+    color: var(--muted); cursor: pointer;
+    transition: all 0.2s; user-select: none; letter-spacing: 1px;
+  }
+  #panel-tab:hover { color: var(--accent); border-color: var(--accent); }
+  #panel-tab.open  { right: var(--panel-w); color: var(--accent); border-color: var(--accent); }
+
+  /* ── Side panel ── */
+  #side-panel {
+    position: fixed;
+    top: calc(var(--header-h) + var(--status-h));
+    right: calc(-1 * var(--panel-w));
+    width: var(--panel-w); bottom: 0;
+    background: rgba(10,12,15,0.97);
+    border-left: 1px solid var(--border);
+    z-index: 800;
+    transition: right 0.25s cubic-bezier(0.4,0,0.2,1);
+    display: flex; flex-direction: column;
+    backdrop-filter: blur(8px);
+    overflow-y: auto;
+  }
+  #side-panel.open { right: 0; }
+  #side-panel::-webkit-scrollbar { width: 4px; }
+  #side-panel::-webkit-scrollbar-track { background: transparent; }
+  #side-panel::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  /* ── Panel sections ── */
+  .panel-section {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-family: var(--mono); font-size: 9px; color: var(--muted);
+    letter-spacing: 1px; margin-bottom: 10px; text-transform: uppercase;
+  }
+  .input-row {
+    margin-bottom: 10px;
+  }
+  .input-label {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    margin-bottom: 4px; display: block;
+  }
+  .input-field {
+    font-family: var(--mono); font-size: 12px; font-weight: bold;
+    color: var(--blue); background: var(--bg);
+    border: 1px solid var(--border2); border-radius: 3px;
+    padding: 5px 8px; width: 100%; outline: none;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    transition: border-color 0.15s;
+  }
+  .input-field:focus { border-color: var(--blue); }
+  .input-field::placeholder { color: var(--muted); font-weight: normal; letter-spacing: 0; text-transform: none; }
+  
+  .input-with-button {
+    display: flex; gap: 4px;
+  }
+  .input-with-button .input-field {
+    flex: 1;
+  }
+  .search-helper-btn {
+    background: var(--border2); border: 1px solid var(--border2);
+    color: var(--muted); font-family: var(--mono); font-size: 9px;
+    padding: 5px 10px; cursor: pointer; transition: all 0.15s;
+    white-space: nowrap; border-radius: 3px; flex-shrink: 0;
+  }
+  .search-helper-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .checkbox-group {
+    display: flex; gap: 12px; margin-top: 8px;
+  }
+  .checkbox-label {
+    display: flex; align-items: center; gap: 4px;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    cursor: pointer; user-select: none;
+  }
+  .checkbox-label input { accent-color: var(--accent); cursor: pointer; }
+
+  .radio-group {
+    display: flex; gap: 10px; margin-top: 8px;
+  }
+  .radio-label {
+    display: flex; align-items: center; gap: 4px;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    cursor: pointer; user-select: none;
+  }
+  .radio-label input { accent-color: var(--accent); cursor: pointer; }
+
+  .date-input {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--text); background: var(--bg);
+    border: 1px solid var(--border2); border-radius: 3px;
+    padding: 5px 8px; width: 100%; outline: none;
+    transition: border-color 0.15s;
+  }
+  .date-input:focus { border-color: var(--blue); }
+
+  .date-hint {
+    font-family: var(--mono); font-size: 9px; color: var(--muted);
+    margin-top: 4px; font-style: italic;
+  }
+
+  .action-btn {
+    background: var(--accent); border: none; border-radius: 4px;
+    color: white; font-family: var(--mono); font-size: 11px; font-weight: bold;
+    padding: 8px 14px; cursor: pointer; width: 100%;
+    transition: filter 0.15s; margin-top: 10px;
+  }
+  .action-btn:hover { filter: brightness(1.15); }
+
+  .helper-hint {
+    font-family: var(--mono); font-size: 8px; color: var(--muted);
+    margin-top: 3px; line-height: 1.3; font-style: italic;
+  }
+
+  /* ── FlightAware results ── */
+  #fa-results {
+    padding: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  #fa-results::-webkit-scrollbar { width: 3px; }
+  #fa-results::-webkit-scrollbar-track { background: transparent; }
+  #fa-results::-webkit-scrollbar-thumb { background: var(--border2); }
+  
+  .fa-item {
+    padding: 6px 8px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background 0.1s;
+    font-family: var(--mono); font-size: 10px;
+    margin-bottom: 4px;
+    border-radius: 2px;
+  }
+  .fa-item:hover { background: rgba(255,255,255,0.03); }
+  .fa-item.active { background: rgba(232,93,38,0.08); border-left-color: var(--accent); }
+  .fa-callsign { color: var(--blue); font-weight: bold; }
+  .fa-route { color: var(--text); }
+  .fa-date { color: var(--muted); font-size: 9px; }
+
+  /* ── BSCo Aura Ad ── */
+  #bsco-ad {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    z-index: 1100;
+    background: rgba(13, 21, 37, 0.95);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 120px;
+  }
+  #bsco-ad.minimized {
+    max-width: 32px;
+    padding: 6px;
+  }
+  #bsco-ad.minimized #ad-content {
+    display: none;
+  }
+  #ad-toggle {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 10px;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+    z-index: 10;
+  }
+  #ad-toggle:hover {
+    color: var(--bsco-gold);
+  }
+  #bsco-ad.minimized #ad-toggle::before {
+    content: '▲';
+  }
+  #bsco-ad:not(.minimized) #ad-toggle::before {
+    content: '▼';
+  }
+  #ad-content {
+    margin-top: 18px;
+  }
+  #ad-content a:hover img {
+    filter: brightness(1.1);
+    transform: scale(1.02);
+    transition: all 0.2s;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="header">
+  <a href="https://possumfix.com" class="logo-link">
+    <span class="paw">🐾</span>
+    <span class="word">Possum</span>
+  </a>
+  <div class="page-title">Cockpit</div>
+  <div id="flight-meta"></div>
+  <div id="flight-date-display"></div>
+</div>
+
+<!-- Status Bar -->
+<div id="status-bar" class="waiting">
+  <div class="dot"></div>
+  <span id="status-text">Ready for flight search</span>
+</div>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- Panel Tab -->
+<div id="panel-tab" onclick="togglePanel()">&gt;&gt;</div>
+
+<!-- Side Panel -->
+<div id="side-panel" class="open">
+  
+  <!-- FLIGHT SEARCH SECTION -->
+  <div class="panel-section">
+    <div class="section-title">Flight Search</div>
+    
+    <div class="input-row">
+      <label class="input-label">Operator</label>
+      <div class="input-with-button">
+        <input type="text" id="operator-input" class="input-field" placeholder="DAL" maxlength="6">
+        <button class="search-helper-btn" onclick="searchOperator()">🔍</button>
+      </div>
+      <div class="helper-hint">Type directly or click 🔍 for phonetic lookup</div>
+    </div>
+
+    <div class="input-row">
+      <label class="input-label">Flight Type</label>
+      <div class="checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="civ-check" checked>
+          <span>Civilian</span>
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="mil-check" checked>
+          <span>Military</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <label class="input-label">Number</label>
+      <input type="text" id="number-input" class="input-field" placeholder="123">
+    </div>
+
+    <div class="input-row">
+      <label class="input-label">Date (±10 days)</label>
+      <input type="date" id="date-input" class="date-input">
+      <div class="date-hint" id="date-hint">searches 02/19–03/11</div>
+    </div>
+
+    <button class="action-btn" onclick="searchFlights()">SEARCH FLIGHTS</button>
+  </div>
+
+  <!-- PHONETIC SEARCH SECTION -->
+  <div class="panel-section">
+    <div class="section-title">Phonetic Search</div>
+    
+    <div class="input-row">
+      <label class="input-label">Fix / Procedure</label>
+      <div class="input-with-button">
+        <input type="text" id="fix-input" class="input-field" placeholder="OLLLA">
+        <button class="search-helper-btn" onclick="searchFix()">🔍</button>
+      </div>
+      <div class="helper-hint">Type directly or click 🔍 for phonetic lookup</div>
+    </div>
+
+    <div class="input-row">
+      <label class="input-label">Search Type</label>
+      <div class="radio-group">
+        <label class="radio-label">
+          <input type="radio" name="searchType" value="waypoint">
+          <span>Waypoint</span>
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="searchType" value="proc">
+          <span>Procedure</span>
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="searchType" value="both" checked>
+          <span>Both</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <label class="input-label">Airport (optional - blank = nationwide)</label>
+      <div class="input-with-button">
+        <input type="text" id="airport-input" class="input-field" placeholder="">
+        <button class="search-helper-btn" onclick="searchAirport()">🔍</button>
+      </div>
+      <div class="helper-hint">ICAO code or click 🔍 to look up by city/name</div>
+    </div>
+
+    <button class="action-btn" onclick="searchFixes()">SEARCH FIXES</button>
+  </div>
+
+  <!-- FLIGHTAWARE RESULTS SECTION -->
+  <div class="panel-section">
+    <div class="section-title">FlightAware Results</div>
+    <div id="fa-results">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:20px;">
+        Enter callsign and date, then click SEARCH FLIGHTS
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BSCo Aura Ad -->
+<div id="bsco-ad" class="minimized">
+  <div id="ad-toggle" onclick="toggleAd()"></div>
+  <div id="ad-content">
+    <a href="https://banana-sandwich-co.printify.me/product/27730202/unofficial-project-aura-mug-your-all-night-late-night-co-pilot-coffee-cup-15oz" target="_blank" style="text-decoration:none;display:block">
+      <img src="https://possumfix.com/PosterSmall.png" alt="Project Aura" style="width:100px;height:auto;display:block;border-radius:4px;margin:0 auto 6px">
+      <div style="text-align:center;line-height:1.3">
+        <div style="font-family:var(--mono);font-size:11px;font-weight:bold;color:var(--bsco-gold);letter-spacing:1px">Aura</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);padding-left:12px">Merch</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<script>
+// ── Globals ──
+let map, panelOpen = true;
+let statusBar = document.getElementById('status-bar');
+let statusText = document.getElementById('status-text');
+let mapMarkers = [], mapLines = [], mapLabels = [];
+
+// ── Initialize map ──
+map = L.map('map', { zoomControl: true }).setView([39.8283, -98.5795], 5); // Center USA
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap, &copy; CartoDB',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+// ── URL Parameter Parsing ──
+function parseURLParams() {
+  const params = new URLSearchParams(window.location.search);
+  
+  // Operator
+  const operator = params.get('operator');
+  if (operator) document.getElementById('operator-input').value = operator.toUpperCase();
+  
+  // Number
+  const number = params.get('number');
+  if (number) document.getElementById('number-input').value = number;
+  
+  // Type (civ/mil/both)
+  const type = params.get('type') || 'both';
+  document.getElementById('civ-check').checked = (type === 'civ' || type === 'both');
+  document.getElementById('mil-check').checked = (type === 'mil' || type === 'both');
+  
+  // Date (MMDDYYYY → YYYY-MM-DD)
+  const dateStr = params.get('date') || '03012026';
+  const mm = dateStr.substring(0, 2);
+  const dd = dateStr.substring(2, 4);
+  const yyyy = dateStr.substring(4, 8);
+  document.getElementById('date-input').value = `${yyyy}-${mm}-${dd}`;
+  updateDateHint();
+  
+  // Fix
+  const fix = params.get('fix');
+  if (fix) document.getElementById('fix-input').value = fix.toUpperCase();
+  
+  // Search Type
+  const searchType = params.get('searchType') || 'both';
+  document.querySelector(`input[name="searchType"][value="${searchType}"]`).checked = true;
+  
+  // Airport
+  const airport = params.get('airport');
+  if (airport) document.getElementById('airport-input').value = airport.toUpperCase();
+}
+
+// ── Date Hint Calculator ──
+function updateDateHint() {
+  const dateInput = document.getElementById('date-input').value;
+  if (!dateInput) {
+    document.getElementById('date-hint').textContent = '';
+    return;
+  }
+  
+  const date = new Date(dateInput);
+  const before = new Date(date);
+  before.setDate(before.getDate() - 10);
+  const after = new Date(date);
+  after.setDate(after.getDate() + 10);
+  
+  const fmt = (d) => `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+  document.getElementById('date-hint').textContent = `searches ${fmt(before)}–${fmt(after)}`;
+  
+  // Update header display
+  const headerFmt = (d) => `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
+  document.getElementById('flight-date-display').textContent = `Date: ${headerFmt(date)}`;
+}
+document.getElementById('date-input').addEventListener('change', updateDateHint);
+
+// ── Search Helper Buttons ──
+function searchOperator() {
+  const operator = document.getElementById('operator-input').value.trim();
+  const type = getFlightType();
+  const url = `https://possumfix.com/index.html?view=callsigns&q=${operator}&type=${type}&match=75`;
+  window.open(url, 'operator_search', 'width=800,height=600,resizable=yes,scrollbars=yes');
+}
+
+function searchFix() {
+  const fix = document.getElementById('fix-input').value.trim();
+  const searchType = document.querySelector('input[name="searchType"]:checked').value;
+  const airport = document.getElementById('airport-input').value.trim();
+  const url = `https://possumfix.com/index.html?mode=fixes&q=${fix}&searchType=${searchType}&airport=${airport}&distance=0&match=75`;
+  window.open(url, 'fix_search', 'width=800,height=600,resizable=yes,scrollbars=yes');
+}
+
+function searchAirport() {
+  const airport = document.getElementById('airport-input').value.trim();
+  const url = `https://possumfix.com/index.html?mode=airports&q=${airport}`;
+  window.open(url, 'airport_search', 'width=800,height=600,resizable=yes,scrollbars=yes');
+}
+
+// ── Flight Type Helper ──
+function getFlightType() {
+  const civ = document.getElementById('civ-check').checked;
+  const mil = document.getElementById('mil-check').checked;
+  if (civ && mil) return 'both';
+  if (civ) return 'civ';
+  if (mil) return 'mil';
+  return 'both';
+}
+
+// ── Search Flights (Mock) ──
+function searchFlights() {
+  const operator = document.getElementById('operator-input').value.trim().toUpperCase();
+  const number = document.getElementById('number-input').value.trim();
+  
+  if (!operator || !number) {
+    setStatus('error', 'Enter operator and number');
+    return;
+  }
+  
+  const callsign = operator + number;
+  setStatus('loading', `Searching FlightAware for ${callsign}...`);
+  
+  // Mock results (in real implementation, call FlightAware API)
+  setTimeout(() => {
+    const resultsDiv = document.getElementById('fa-results');
+    resultsDiv.innerHTML = `
+      <div class="fa-item active">
+        <div class="fa-callsign">${callsign}</div>
+        <div class="fa-route">KDFW → KLAX</div>
+        <div class="fa-date">Filed 02/28/26 14:23Z</div>
+      </div>
+      <div class="fa-item">
+        <div class="fa-callsign">${callsign}</div>
+        <div class="fa-route">KDFW → KLAX</div>
+        <div class="fa-date">Filed 02/27/26 14:18Z</div>
+      </div>
+      <div class="fa-item">
+        <div class="fa-callsign">${callsign}</div>
+        <div class="fa-route">KDFW → KLAX</div>
+        <div class="fa-date">Filed 02/26/26 14:25Z</div>
+      </div>
+    `;
+    setStatus('ok', `Found flights for ${callsign}`);
+    
+    // Update header meta
+    document.getElementById('flight-meta').innerHTML = `<span>${callsign}</span> KDFW → KLAX`;
+  }, 1000);
+}
+
+// ── Search Fixes (Mock) ──
+function searchFixes() {
+  const fix = document.getElementById('fix-input').value.trim().toUpperCase();
+  
+  if (!fix) {
+    setStatus('error', 'Enter fix or procedure name');
+    return;
+  }
+  
+  setStatus('loading', `Searching for ${fix}...`);
+  
+  // Mock phonetic search results
+  setTimeout(() => {
+    setStatus('ok', `Found matches for ${fix}`);
+    // In real implementation: search cifp_data.json, render markers on map
+  }, 800);
+}
+
+// ── Panel Toggle ──
+function togglePanel() {
+  panelOpen = !panelOpen;
+  document.getElementById('side-panel').classList.toggle('open', panelOpen);
+  const tab = document.getElementById('panel-tab');
+  tab.classList.toggle('open', panelOpen);
+  tab.textContent = panelOpen ? '<<' : '>>';
+}
+
+// ── Ad Toggle ──
+function toggleAd() {
+  document.getElementById('bsco-ad').classList.toggle('minimized');
+}
+
+// ── UI helpers ──
+function setStatus(type, msg) {
+  statusBar.className = type;
+  statusText.textContent = msg;
+}
+
+// ── Initialize ──
+parseURLParams();
+updateDateHint();
+</script>
+
+</body>
+</html>
