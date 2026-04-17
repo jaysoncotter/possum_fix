@@ -989,12 +989,14 @@ function renderMap(tokens, candidate) {
   // Get destination coordinates - try token data first, then airport database
   let destLat = destAirport?.lat;
   let destLon = destAirport?.lon;
+  let usedDatabase = false;
   
   if ((!destLat || !destLon) && destAirport?.ident) {
     const coords = AIRPORT_COORDS[destAirport.ident.toUpperCase()];
     if (coords) {
       destLat = coords[0];
       destLon = coords[1];
+      usedDatabase = true;
       console.log('[Cockpit] Using airport database coords for ' + destAirport.ident);
     }
   }
@@ -1005,18 +1007,44 @@ function renderMap(tokens, candidate) {
     destHasCoords: !!(destLat && destLon),
     lastFixIdent: lastFixWithCoords?.ident,
     lastFixHasCoords: !!lastFixWithCoords,
-    usedDatabase: !destAirport?.lat && !!(destLat && destLon)
+    usedDatabase: usedDatabase
   };
   console.log('[Cockpit] White line check:', JSON.stringify(debugInfo));
   
   if (lastFixWithCoords && destLat && destLon) {
     console.log('[Cockpit] ✅ Drawing white gap-filler line from ' + lastFixWithCoords.ident + ' to ' + destAirport.ident);
+    
+    // Draw the white line
     const gapLine = L.polyline(
       [[lastFixWithCoords.lat, lastFixWithCoords.lon], [destLat, destLon]],
-      { color: '#ffffff', weight: 4, opacity: 1.0 }  // Thicker and fully opaque
+      { color: '#ffffff', weight: 4, opacity: 1.0 }
     ).addTo(map);
-    
     mapLines.push(gapLine);
+    
+    // If we used database coords, add an airport marker at destination (since it won't have one from the route data)
+    if (usedDatabase && destAirport) {
+      const airportColor = '#4a90d9'; // Blue for airport
+      const size = 13;
+      
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:${size}px;height:${size}px;background:${airportColor};border-radius:50%;border:2px solid rgba(255,255,255,0.6);box-shadow:0 0 10px ${airportColor}88;cursor:pointer"></div>`,
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2]
+      });
+      
+      const labelIcon = L.divIcon({
+        className: 'fix-map-label airport-lbl',
+        html: `<div>${destAirport.ident.toUpperCase()}</div>`,
+        iconAnchor: [0, -4]
+      });
+      
+      const marker = L.marker([destLat, destLon], { icon }).addTo(map);
+      mapMarkers.push(marker);
+      
+      const labelMarker = L.marker([destLat, destLon], { icon: labelIcon, interactive: false }).addTo(map);
+      mapLabels.push(labelMarker);
+    }
   } else {
     console.log('[Cockpit] ❌ Cannot draw white line - airport ' + destAirport?.ident + ' not in database');
   }
