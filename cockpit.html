@@ -944,7 +944,10 @@ function renderMap(tokens, candidate) {
   // Color-coded polyline segments
   for (let i = 0; i < tokens.length - 1; i++) {
     const a = tokens[i], b = tokens[i + 1];
-    if (!a.lat || !b.lat) continue;
+    
+    // Skip if either point has invalid coordinates
+    if (!a.lat || !a.lon || !b.lat || !b.lon) continue;
+    if (isNaN(a.lat) || isNaN(a.lon) || isNaN(b.lat) || isNaN(b.lon)) continue;
     
     const midAlt = (parseAltitude(a.actualAlt || 0) + parseAltitude(b.actualAlt || 0)) / 2;
     const color = getAltitudeColor(midAlt);
@@ -959,7 +962,9 @@ function renderMap(tokens, candidate) {
   // White gap filler line
   const lastFix = tokens[tokens.length - 2];
   const destAirport = tokens[tokens.length - 1];
-  if (lastFix && destAirport && lastFix.type !== 'airport' && destAirport.type === 'airport') {
+  if (lastFix && destAirport && 
+      lastFix.lat && lastFix.lon && destAirport.lat && destAirport.lon &&
+      lastFix.type !== 'airport' && destAirport.type === 'airport') {
     const gapLine = L.polyline(
       [[lastFix.lat, lastFix.lon], [destAirport.lat, destAirport.lon]],
       { color: '#ffffff', weight: 3, opacity: 0.88 }
@@ -970,7 +975,9 @@ function renderMap(tokens, candidate) {
   
   // Markers
   tokens.forEach((item, idx) => {
+    // Skip if coordinates are missing or invalid
     if (!item.lat || !item.lon) return;
+    if (isNaN(item.lat) || isNaN(item.lon)) return;
     
     const isAirport = item.type === 'airport';
     const color = getAltitudeColor(item.actualAlt);
